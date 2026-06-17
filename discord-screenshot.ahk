@@ -14,23 +14,18 @@ TRIGGER_HOTKEY_ONE := IniRead(configFile, "hotkeys", "capture_one", "F9")
 TRIGGER_HOTKEY_TWO := IniRead(configFile, "hotkeys", "capture_two", "F10")
 OVERLAY_KEY := IniRead(configFile, "hotkeys", "game_overlay", "z")
 DISCORD_PASTE_TEXT := IniRead(configFile, "hotkeys", "command_text", "")
-GAME_WIN_TITLE := "GTA5_enhanced.exe"
+GAME_WIN_TITLE := "Photos.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
-CAP_X_PCT := 0.01640625
-CAP_Y_PCT := 0.01527777
-CAP_W_PCT := 0.22187500
-CAP_H_PCT := 0.59259259
+; CAP_X_PCT := 0.01640625
+; CAP_Y_PCT := 0.01527777
+; CAP_W_PCT := 0.22187500
+; CAP_H_PCT := 0.59259259
 
 ; CAP_X_PCT_UW := 0.01640625
 ; CAP_Y_PCT_UW := 0.01527777
 ; CAP_W_PCT_UW := 0.22187500
 ; CAP_H_PCT_UW := 0.59259259
-
-OCR_X := 0.113802
-OCR_Y := 0.022222
-OCR_W := 0.014843
-OCR_H := 0.021296
 
 ; OCR_X := 0.114322
 ; OCR_Y := 0.022222
@@ -38,6 +33,24 @@ OCR_H := 0.021296
 ; OCR_H := 0.021296
 
 OCR_PLAYERCOUNT := ""
+
+PLAYER_RECT_PCT := {}
+
+ROW_HEIGHTS := [76, 75, 75, 76, 75, 75, 76, 75, 75, 76, 75, 75, 76, 75, 76, 75]
+
+BASE_SCREENSHOT_PCT := {
+    x: 0.01640625,
+    y: 0.01527777,
+    w: 0.22187500,
+    h: 0.06944444
+}
+
+OCR_SCREENSHOT_PCT := {
+    x: 0.113802,
+    y: 0.022222,
+    w: 0.014843,
+    h: 0.021296
+}
 
 ; ------------------------------------------------------------------------------
 
@@ -118,19 +131,14 @@ TakeScreenshot() {
 }
 
 GetPlayerCount(gameHwnd) {
-    global OCR_X, OCR_Y, OCR_W, OCR_H, OCR_PLAYERCOUNT
+    global OCR_PLAYERCOUNT
 
-    WinGetPos(&winX, &winY, &winW, &winH, "ahk_id" gameHwnd)
+    ocrPixels := GetCaptureRect(gameHwnd, OCR_SCREENSHOT_PCT)
 
-    x := Round((winX + winW) * OCR_X)
-    y := Round((winY + winH) * OCR_Y)
-    w := Round(winW * OCR_W)
-    h := Round(winH * OCR_H)
-
-    result := OCR.FromRect(x, y, w, h)
-    MsgBox("OCR Result: " result.Text)
+    result := OCR.FromRect(ocrPixels.x, ocrPixels.y, ocrPixels.w, ocrPixels.h)
+    ; MsgBox("OCR Result: " result.Text)
     cleanResult := RegExReplace(result.Text, "[^\d]", "")
-    MsgBox(cleanResult)
+    ; MsgBox(cleanResult)
     OCR_PLAYERCOUNT := cleanResult
 }
 
@@ -176,24 +184,29 @@ SendOverlayKey(keySpec) {
     SendInput("{z up}")
 }
 
-GetCaptureRect(gameHwnd := 0) {
-    global CAP_X_PCT, CAP_Y_PCT, CAP_W_PCT, CAP_H_PCT
+GetCaptureRect(gameHwnd := 0, pctObj := {}) {
+    if !pctObj {
+        MsgBox("Missing percentage object for capture region.")
+        return
+    }
 
     WinGetPos(&winX, &winY, &winW, &winH, "ahk_id" gameHwnd)
 
-    x := Round((winX + winW) * CAP_X_PCT)
-    y := Round((winY + winH) * CAP_Y_PCT)
-    w := Round(winW * CAP_W_PCT)
-    h := Round(winH * CAP_H_PCT)
+    x := Round((winX + winW) * pctObj.x)
+    y := Round((winY + winH) * pctObj.y)
+    w := Round(winW * pctObj.w)
+    h := Round(winH * pctObj.h)
 
     if (w <= 0 || h <= 0)
         return false
 
+    MsgBox("Capture Rect:`nX: " x "`nY: " y "`nW: " w "`nH: " h)
     return { x: x, y: y, w: w, h: h }
 }
 
 CaptureGameRegionToClipboard(gameHwnd := 0) {
-    rect := GetCaptureRect(gameHwnd)
+    global BASE_SCREENSHOT_PCT
+    rect := GetCaptureRect(gameHwnd, BASE_SCREENSHOT_PCT)
     if !rect
         return false
     return CaptureScreenRegionToClipboard(rect.x, rect.y, rect.w, rect.h)
