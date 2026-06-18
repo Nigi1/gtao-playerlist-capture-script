@@ -81,7 +81,7 @@ TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY_ONE " = Screenshot playe
 ; }
 
 GetPixelColors() {
-    global GAME_WIN_TITLE, DISCORD_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
+    global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
     global BASE_SCREENSHOT_COORDS, BASE_PIXEL_COORDS
 
     if !gameHwnd := WinExist("ahk_exe " GAME_WIN_TITLE) {
