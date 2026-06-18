@@ -14,66 +14,109 @@ TRIGGER_HOTKEY_ONE := IniRead(configFile, "hotkeys", "capture_one", "F9")
 TRIGGER_HOTKEY_TWO := IniRead(configFile, "hotkeys", "capture_two", "F10")
 OVERLAY_KEY := IniRead(configFile, "hotkeys", "game_overlay", "z")
 DISCORD_PASTE_TEXT := IniRead(configFile, "hotkeys", "command_text", "")
-GAME_WIN_TITLE := "Photos.exe"
+GAME_WIN_TITLE := "GTA.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
-; CAP_X_PCT := 0.01640625
-; CAP_Y_PCT := 0.01527777
-; CAP_W_PCT := 0.22187500
-; CAP_H_PCT := 0.59259259
+ROW_HEIGHTS_PCT := [0.069907, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722,
+    0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722]
 
-; CAP_X_PCT_UW := 0.01640625
-; CAP_Y_PCT_UW := 0.01527777
-; CAP_W_PCT_UW := 0.22187500
-; CAP_H_PCT_UW := 0.59259259
-
-; OCR_X := 0.114322
-; OCR_Y := 0.022222
-; OCR_W := 0.014322
-; OCR_H := 0.021296
-
-OCR_PLAYERCOUNT := ""
-
-PLAYER_RECT_PCT := {}
-
-ROW_HEIGHTS := [76, 75, 75, 76, 75, 75, 76, 75, 75, 76, 75, 75, 76, 75, 76, 75]
+ROW_HEIGHTS_COORDS := []
 
 BASE_SCREENSHOT_PCT := {
     x: 0.01640625,
     y: 0.01527777,
-    w: 0.22187500,
-    h: 0.06944444
+    w: 0.22213541,
+    h: 0.06990740
 }
 
-OCR_SCREENSHOT_PCT := {
-    x: 0.113802,
-    y: 0.022222,
-    w: 0.014843,
-    h: 0.021296
+BASE_SCREENSHOT_COORDS := {}
+
+PIXEL_COLOR_PCT := {
+    x: 0.224739,
+    y: 0.050000,
+    w: 0.006770,
+    h: 0.004629
 }
+
+BASE_PIXEL_COORDS := {}
+
+WINDOW_SIZE := {}
+
+PLAYER_COUNT := 1
 
 ; ------------------------------------------------------------------------------
 
-; Hotkey(TRIGGER_HOTKEY_ONE, (*) => RunScreenshotSequence(1))
-; Hotkey(TRIGGER_HOTKEY_TWO, (*) => RunScreenshotSequence(2))
-Hotkey(TRIGGER_HOTKEY_One, (*) => TakeScreenshot())
+Hotkey(TRIGGER_HOTKEY_One, (*) => GetPixelColors())
 
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY_ONE " = Screenshot playerlist.", 1)
 
-RunScreenshotSequence(count := 1) {
+; RunScreenshotSequence(count := 1) {
+;     global GAME_WIN_TITLE, DISCORD_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
+
+;     if !gameHwnd := WinExist("ahk_exe " GAME_WIN_TITLE) {
+;         MsgBox("Game window not found:`n" GAME_WIN_TITLE, "Discord Screenshot", "Icon!")
+;         return
+;     }
+
+;     loop count {
+;         WinActivate("ahk_id" gameHwnd)
+;         WinWaitActive("ahk_id " gameHwnd, , 2)
+
+;         SendOverlayKey(OVERLAY_KEY)
+;         Sleep(350)
+
+;         if !CaptureGameRegionToClipboard(gameHwnd) {
+;             MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
+;             return
+;         }
+
+;         PasteToDiscord(gameHwnd)
+
+;         if (A_Index < count) {
+;             WinActivate("ahk_id " gameHwnd)
+;             WinWaitActive("ahk_id " gameHwnd, , 2)
+;         }
+;     }
+;     SendTextToDiscord(DISCORD_PASTE_TEXT)
+; }
+
+GetPixelColors() {
     global GAME_WIN_TITLE, DISCORD_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
+    global BASE_SCREENSHOT_COORDS, BASE_PIXEL_COORDS
 
     if !gameHwnd := WinExist("ahk_exe " GAME_WIN_TITLE) {
         MsgBox("Game window not found:`n" GAME_WIN_TITLE, "Discord Screenshot", "Icon!")
         return
     }
 
-    loop count {
+    getWindowSize(gameHwnd)
+
+    BASE_SCREENSHOT_COORDS := getScreenRelativeCoords(BASE_SCREENSHOT_PCT)
+    BASE_PIXEL_COORDS := getScreenRelativeCoords(PIXEL_COLOR_PCT)
+
+    getScreenRelativeRowHeight(gameHwnd, ROW_HEIGHTS_PCT)
+
+    WinActivate("ahk_id" gameHwnd)
+    WinWaitActive("ahk_id " gameHwnd, , 2)
+
+    SendOverlayKey(OVERLAY_KEY)
+    Sleep(100)
+    findPlayerCount()
+
+    if !CaptureGameRegionToClipboard(gameHwnd) {
+        MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
+        return
+    }
+
+    PasteToDiscord(gameHwnd)
+
+    if PLAYER_COUNT = 16 {
         WinActivate("ahk_id" gameHwnd)
         WinWaitActive("ahk_id " gameHwnd, , 2)
 
         SendOverlayKey(OVERLAY_KEY)
-        Sleep(350)
+        Sleep(100)
+        findPlayerCount()
 
         if !CaptureGameRegionToClipboard(gameHwnd) {
             MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
@@ -81,65 +124,117 @@ RunScreenshotSequence(count := 1) {
         }
 
         PasteToDiscord(gameHwnd)
-
-        if (A_Index < count) {
-            WinActivate("ahk_id " gameHwnd)
-            WinWaitActive("ahk_id " gameHwnd, , 2)
-        }
-    }
-    SendTextToDiscord(DISCORD_PASTE_TEXT)
-}
-
-TakeScreenshot() {
-    global GAME_WIN_TITLE, DISCORD_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT, OCR_PLAYERCOUNT
-
-    if !gameHwnd := WinExist("ahk_exe " GAME_WIN_TITLE) {
-        MsgBox("Game window not found:`n" GAME_WIN_TITLE, "Discord Screenshot", "Icon!")
-        return
-    }
-
-    loop 2 {
-        WinActivate("ahk_id" gameHwnd)
-        WinWaitActive("ahk_id " gameHwnd, , 2)
-
-        SendOverlayKey(OVERLAY_KEY)
-        Sleep(350)
-
-        if (A_index != 2) {
-            GetPlayerCount(gameHwnd)
-
-            if !OCR_PLAYERCOUNT {
-                ToolTip("OCR failed to read player count. Defaulting to 2 screenshots.")
-                SetTimer(() => ToolTip(), -3000)
-                OCR_PLAYERCOUNT := 30
-            }
-        }
-
-        if !CaptureGameRegionToClipboard(gameHwnd) {
-            MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
-            return
-        }
-
-        PasteToDiscord(gameHwnd)
-
-        if OCR_PLAYERCOUNT < 17
-            break
-
     }
 
     SendTextToDiscord(DISCORD_PASTE_TEXT)
 }
 
-GetPlayerCount(gameHwnd) {
-    global OCR_PLAYERCOUNT
+findPlayerCount() {
+    global PLAYER_COUNT
 
-    ocrPixels := GetCaptureRect(gameHwnd, OCR_SCREENSHOT_PCT)
+    PLAYER_COUNT := FindLastActivePlayerRow()
 
-    result := OCR.FromRect(ocrPixels.x, ocrPixels.y, ocrPixels.w, ocrPixels.h)
-    ; MsgBox("OCR Result: " result.Text)
-    cleanResult := RegExReplace(result.Text, "[^\d]", "")
-    ; MsgBox(cleanResult)
-    OCR_PLAYERCOUNT := cleanResult
+    MsgBox("Detected Player Count: " PLAYER_COUNT)
+}
+
+FindLastActivePlayerRow(maxIndex := 16) {
+    global PLAYER_COUNT
+    if RowHasColor(16) {
+        PLAYER_COUNT := 16
+        return 16
+    }
+
+    if RowHasColor(8) {
+        index := 8
+        while (index + 1 <= maxIndex && RowHasColor(index + 1)) {
+            index++
+        }
+        PLAYER_COUNT := index
+        return index
+    }
+
+    index := 1
+    while (index + 1 <= maxIndex && RowHasColor(index + 1)) {
+        index++
+    }
+    PLAYER_COUNT := index
+    return index
+}
+
+HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation := 0) {
+    totalSamples := 0
+    matchCount := 0
+
+    x2 := x1 + w
+    y2 := y1 + h
+
+    y := y1
+    while (y <= y2) {
+        x := x1
+        while (x <= x2) {
+            totalSamples++
+            if (PixelGetColor(x, y) = color)
+                matchCount++
+            x += step
+        }
+        y += step
+    }
+
+    percentage := (matchCount / totalSamples) * 100
+    ; MsgBox("Color Coverage: " Round(percentage, 2) "%`nMatches: " matchCount "`nTotal Samples: " totalSamples)
+
+    return (matchCount / totalSamples) >= minPercent
+}
+
+RowHasColor(index) {
+    global BASE_PIXEL_COORDS, WINDOW_SIZE
+    playerRow := getPlayerRow(BASE_SCREENSHOT_COORDS, index)
+    fixHeight := 0.0023148 * WINDOW_SIZE.winH
+
+    return HasColorCoverage(BASE_PIXEL_COORDS.x, playerRow.y + fixHeight, BASE_PIXEL_COORDS.w, BASE_PIXEL_COORDS.h -
+        fixHeight, 0x000000, 0.2)
+}
+
+getPlayerRow(baseRow, index) {
+    global ROW_HEIGHTS_COORDS
+
+    y := baseRow.y
+
+    loop index - 1 {
+        y += ROW_HEIGHTS_COORDS[A_Index]
+    }
+
+    return { x: baseRow.x, y: y, w: baseRow.w, h: ROW_HEIGHTS_COORDS[index] }
+}
+
+getScreenRelativeCoords(pctObj) {
+    global WINDOW_SIZE
+
+    x := Round((WINDOW_SIZE.winX + WINDOW_SIZE.winW) * pctObj.x)
+    y := Round((WINDOW_SIZE.winY + WINDOW_SIZE.winH) * pctObj.y)
+    w := Round(WINDOW_SIZE.winW * pctObj.w)
+    h := Round(WINDOW_SIZE.winH * pctObj.h)
+
+    return { x: x, y: y, w: w, h: h }
+}
+
+getWindowSize(gameHwnd) {
+    global WINDOW_SIZE
+    WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " gameHwnd)
+    WINDOW_SIZE.winX := winX
+    WINDOW_SIZE.winY := winY
+    WINDOW_SIZE.winW := winW
+    WINDOW_SIZE.winH := winH
+}
+
+getScreenRelativeRowHeight(gameHwnd, pctArray) {
+    global ROW_HEIGHTS_COORDS
+
+    WinGetPos(&winX, &winY, &winW, &winH, "ahk_id" gameHwnd)
+
+    loop pctArray.Length {
+        ROW_HEIGHTS_COORDS.Push(Round(winH * pctArray[A_Index]))
+    }
 }
 
 PasteToDiscord(gameHwnd) {
@@ -185,9 +280,16 @@ SendOverlayKey(keySpec) {
 }
 
 GetCaptureRect(gameHwnd := 0, pctObj := {}) {
+    global ROW_HEIGHTS_COORDS, PLAYER_COUNT
     if !pctObj {
         MsgBox("Missing percentage object for capture region.")
         return
+    }
+
+    additionalHeight := 0
+
+    loop PLAYER_COUNT - 1 {
+        additionalHeight += ROW_HEIGHTS_COORDS[A_Index + 1]
     }
 
     WinGetPos(&winX, &winY, &winW, &winH, "ahk_id" gameHwnd)
@@ -195,12 +297,12 @@ GetCaptureRect(gameHwnd := 0, pctObj := {}) {
     x := Round((winX + winW) * pctObj.x)
     y := Round((winY + winH) * pctObj.y)
     w := Round(winW * pctObj.w)
-    h := Round(winH * pctObj.h)
+    h := Round(winH * pctObj.h) + additionalHeight
 
     if (w <= 0 || h <= 0)
         return false
 
-    MsgBox("Capture Rect:`nX: " x "`nY: " y "`nW: " w "`nH: " h)
+    ; MsgBox("Capture Rect:`nX: " x "`nY: " y "`nW: " w "`nH: " h)
     return { x: x, y: y, w: w, h: h }
 }
 
@@ -209,15 +311,21 @@ CaptureGameRegionToClipboard(gameHwnd := 0) {
     rect := GetCaptureRect(gameHwnd, BASE_SCREENSHOT_PCT)
     if !rect
         return false
-    return CaptureScreenRegionToClipboard(rect.x, rect.y, rect.w, rect.h)
+    return CaptureScreenRegionToClipboard(rect.x, rect.y, rect.w, rect.h, false)
 }
 
-CaptureScreenRegionToClipboard(x, y, w, h) {
+CaptureScreenRegionToClipboard(x, y, w, h, saveToFile := false, filePath := "") {
     try {
         rect := x "|" y "|" w "|" h
         pBitmap := Gdip_BitmapFromScreen(rect)
         if !pBitmap
             return false
+
+        if saveToFile {
+            if !filePath
+                filePath := A_ScriptDir "\screenshot_" A_Now ".png"
+            Gdip_SaveBitmapToFile(pBitmap, filePath)
+        }
         ok := Gdip_SetBitmapToClipboard(pBitmap)
         Gdip_DisposeImage(pBitmap)
         return ok
