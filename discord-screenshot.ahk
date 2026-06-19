@@ -14,7 +14,7 @@ TRIGGER_HOTKEY_ONE := IniRead(configFile, "hotkeys", "capture_one", "F9")
 TRIGGER_HOTKEY_TWO := IniRead(configFile, "hotkeys", "capture_two", "F10")
 OVERLAY_KEY := IniRead(configFile, "hotkeys", "game_overlay", "z")
 DISCORD_PASTE_TEXT := IniRead(configFile, "hotkeys", "command_text", "")
-GAME_WIN_TITLE := "GTA.exe"
+GAME_WIN_TITLE := "GTA5_enhanced.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
 ROW_HEIGHTS_PCT := [0.069907, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722,
@@ -42,7 +42,7 @@ BASE_PIXEL_COORDS := {}
 
 WINDOW_SIZE := {}
 
-PLAYER_COUNT := 1
+PLAYER_COUNT := 0
 
 ; ------------------------------------------------------------------------------
 
@@ -82,7 +82,9 @@ TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY_ONE " = Screenshot playe
 
 GetPixelColors() {
     global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
-    global BASE_SCREENSHOT_COORDS, BASE_PIXEL_COORDS
+    global BASE_SCREENSHOT_COORDS, BASE_PIXEL_COORDS, PLAYER_COUNT
+
+    PLAYER_COUNT := 0
 
     if !gameHwnd := WinExist("ahk_exe " GAME_WIN_TITLE) {
         MsgBox("Game window not found:`n" GAME_WIN_TITLE, "Discord Screenshot", "Icon!")
@@ -100,7 +102,7 @@ GetPixelColors() {
     WinWaitActive("ahk_id " gameHwnd, , 2)
 
     SendOverlayKey(OVERLAY_KEY)
-    Sleep(100)
+    Sleep(200)
     findPlayerCount()
 
     if !CaptureGameRegionToClipboard(gameHwnd) {
@@ -110,23 +112,25 @@ GetPixelColors() {
 
     PasteToDiscord(gameHwnd)
 
+    SendTextToDiscord(DISCORD_PASTE_TEXT)
+
     if PLAYER_COUNT = 16 {
         WinActivate("ahk_id" gameHwnd)
         WinWaitActive("ahk_id " gameHwnd, , 2)
 
         SendOverlayKey(OVERLAY_KEY)
-        Sleep(100)
+        Sleep(200)
         findPlayerCount()
 
-        if !CaptureGameRegionToClipboard(gameHwnd) {
-            MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
-            return
+        if PLAYER_COUNT != 0 {
+            if !CaptureGameRegionToClipboard(gameHwnd) {
+                MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
+                return
+            }
+
+            PasteToDiscord(gameHwnd)
         }
-
-        PasteToDiscord(gameHwnd)
     }
-
-    SendTextToDiscord(DISCORD_PASTE_TEXT)
 }
 
 findPlayerCount() {
@@ -151,6 +155,11 @@ FindLastActivePlayerRow(maxIndex := 16) {
         }
         PLAYER_COUNT := index
         return index
+    }
+
+    if !RowHasColor(1) {
+        PLAYER_COUNT := 0
+        return 0
     }
 
     index := 1
@@ -189,7 +198,7 @@ HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation :=
 RowHasColor(index) {
     global BASE_PIXEL_COORDS, WINDOW_SIZE
     playerRow := getPlayerRow(BASE_SCREENSHOT_COORDS, index)
-    fixHeight := 0.0023148 * WINDOW_SIZE.winH
+    fixHeight := Round(0.0023148 * WINDOW_SIZE.winH)
 
     return HasColorCoverage(BASE_PIXEL_COORDS.x, playerRow.y + fixHeight, BASE_PIXEL_COORDS.w, BASE_PIXEL_COORDS.h -
         fixHeight, 0x000000, 0.2)
