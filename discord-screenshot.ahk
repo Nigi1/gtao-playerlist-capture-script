@@ -17,25 +17,69 @@ DISCORD_PASTE_TEXT := IniRead(configFile, "hotkeys", "command_text", "")
 GAME_WIN_TITLE := "GTA5_enhanced.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
-ROW_HEIGHTS_PCT := [0.069907, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722,
-    0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722]
+ROW_HEIGHTS_PCT_4k := [0.035185, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185,
+    0.034722, 0.034722, 0.035185, 0.034722, 0.034722, 0.035185, 0.034722]
+
+ROW_HEIGHTS_PCT_2k := [0.034722, 0.034722, 0.035416, 0.034722, 0.034722, 0.035416, 0.034722, 0.034722, 0.034722,
+    0.034722, 0.035416, 0.034722, 0.034722, 0.034722, 0.035416, 0.034722]
+
+ROW_HEIGHTS_PCT_FULLHD := [0.034259, 0.035185, 0.035185, 0.034259, 0.035185, 0.035185, 0.034259, 0.035185,
+    0.035185, 0.034259, 0.035185, 0.035185, 0.035185, 0.034259, 0.035185, 0.03425]
+
+ROW_HEIGHTS_PCT_HD := [0.034722, 0.034722, 0.034722, 0.036111, 0.034722, 0.034722, 0.034722, 0.034722, 0.034722,
+    0.034722, 0.034722, 0.036111, 0.034722, 0.034722, 0.034722, 0.034722]
 
 ROW_HEIGHTS_COORDS := []
 
-BASE_SCREENSHOT_PCT := {
+BASE_SCREENSHOT_PCT_4k := {
     x: 0.01640625,
     y: 0.01527777,
-    w: 0.22213541,
-    h: 0.06990740
+    w: 0.22187500,
+    h: 0.03472222
+}
+
+BASE_SCREENSHOT_PCT_FULLHD := {
+    x: 0.01666666,
+    y: 0.01574074,
+    w: 0.22187500,
+    h: 0.03518518
+}
+
+BASE_SCREENSHOT_PCT_HD := {
+    x: 0.01718750,
+    y: 0.01527777,
+    w: 0.22109375,
+    h: 0.03472222
 }
 
 BASE_SCREENSHOT_COORDS := {}
 
-PIXEL_COLOR_PCT := {
-    x: 0.224739,
-    y: 0.050000,
-    w: 0.006770,
-    h: 0.004629
+PIXEL_COLOR_PCT_4k := {
+    x: 0.22500000,
+    y: 0.05000000,
+    w: 0.00703125,
+    h: 0.00462962
+}
+
+PIXEL_COLOR_PCT_2k := {
+    x: 0.22460937,
+    y: 0.05208333,
+    w: 0.00781250,
+    h: 0.00486111
+}
+
+PIXEL_COLOR_PCT_FULLHD := {
+    x: 0.22447916,
+    y: 0.05277777,
+    w: 0.00781250,
+    h: 0.00370370
+}
+
+PIXEL_COLOR_PCT_HD := {
+    x: 0.22500000,
+    y: 0.05277777,
+    w: 0.00781250,
+    h: 0.00277777
 }
 
 BASE_PIXEL_COORDS := {}
@@ -93,10 +137,31 @@ GetPixelColors() {
 
     getWindowSize(gameHwnd)
 
-    BASE_SCREENSHOT_COORDS := getScreenRelativeCoords(BASE_SCREENSHOT_PCT)
-    BASE_PIXEL_COORDS := getScreenRelativeCoords(PIXEL_COLOR_PCT)
+    basePct := {}
+    pixelPct := {}
+    rowPct := {}
+    if WINDOW_SIZE.winH <= 720 {
+        basePct := BASE_SCREENSHOT_PCT_HD
+        pixelPct := PIXEL_COLOR_PCT_HD
+        rowPct := ROW_HEIGHTS_PCT_HD
+    } else if WINDOW_SIZE.winH <= 1080 {
+        basePct := BASE_SCREENSHOT_PCT_FULLHD
+        pixelPct := PIXEL_COLOR_PCT_FULLHD
+        rowPct := ROW_HEIGHTS_PCT_FULLHD
+    } else if WINDOW_SIZE.winH <= 1440 {
+        basePct := BASE_SCREENSHOT_PCT_4k
+        pixelPct := PIXEL_COLOR_PCT_2k
+        rowPct := ROW_HEIGHTS_PCT_2k
+    } else {
+        basePct := BASE_SCREENSHOT_PCT_4k
+        pixelPct := PIXEL_COLOR_PCT_4k
+        rowPct := ROW_HEIGHTS_PCT_4k
+    }
 
-    getScreenRelativeRowHeight(gameHwnd, ROW_HEIGHTS_PCT)
+    BASE_SCREENSHOT_COORDS := getScreenRelativeCoords(basePct)
+    BASE_PIXEL_COORDS := getScreenRelativeCoords(pixelPct)
+
+    getScreenRelativeRowHeight(gameHwnd, rowPct)
 
     WinActivate("ahk_id" gameHwnd)
     WinWaitActive("ahk_id " gameHwnd, , 2)
@@ -105,7 +170,7 @@ GetPixelColors() {
     Sleep(200)
     findPlayerCount()
 
-    if !CaptureGameRegionToClipboard(gameHwnd) {
+    if !CaptureGameRegionToClipboard(gameHwnd, basePct) {
         MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
         return
     }
@@ -113,6 +178,7 @@ GetPixelColors() {
     PasteToDiscord(gameHwnd)
 
     SendTextToDiscord(DISCORD_PASTE_TEXT)
+    Sleep(100)
 
     if PLAYER_COUNT = 16 {
         WinActivate("ahk_id" gameHwnd)
@@ -123,7 +189,7 @@ GetPixelColors() {
         findPlayerCount()
 
         if PLAYER_COUNT != 0 {
-            if !CaptureGameRegionToClipboard(gameHwnd) {
+            if !CaptureGameRegionToClipboard(gameHwnd, basePct) {
                 MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
                 return
             }
@@ -138,7 +204,7 @@ findPlayerCount() {
 
     PLAYER_COUNT := FindLastActivePlayerRow()
 
-    MsgBox("Detected Player Count: " PLAYER_COUNT)
+    ; MsgBox("Detected Player Count: " PLAYER_COUNT)
 }
 
 FindLastActivePlayerRow(maxIndex := 16) {
@@ -199,9 +265,16 @@ RowHasColor(index) {
     global BASE_PIXEL_COORDS, WINDOW_SIZE
     playerRow := getPlayerRow(BASE_SCREENSHOT_COORDS, index)
     fixHeight := Round(0.0023148 * WINDOW_SIZE.winH)
+    step := 4
+
+    if WINDOW_SIZE.winH <= 1080 {
+        step := 2
+    }
+
+    ; MsgBox(BASE_PIXEL_COORDS.x ", " playerRow.y + fixHeight ", " BASE_PIXEL_COORDS.w ", " BASE_PIXEL_COORDS.h)
 
     return HasColorCoverage(BASE_PIXEL_COORDS.x, playerRow.y + fixHeight, BASE_PIXEL_COORDS.w, BASE_PIXEL_COORDS.h -
-        fixHeight, 0x000000, 0.2)
+        fixHeight, 0x000000, 0.1, step)
 }
 
 getPlayerRow(baseRow, index) {
@@ -209,7 +282,7 @@ getPlayerRow(baseRow, index) {
 
     y := baseRow.y
 
-    loop index - 1 {
+    loop index {
         y += ROW_HEIGHTS_COORDS[A_Index]
     }
 
@@ -219,8 +292,8 @@ getPlayerRow(baseRow, index) {
 getScreenRelativeCoords(pctObj) {
     global WINDOW_SIZE
 
-    x := Round((WINDOW_SIZE.winX + WINDOW_SIZE.winW) * pctObj.x)
-    y := Round((WINDOW_SIZE.winY + WINDOW_SIZE.winH) * pctObj.y)
+    x := Round((WINDOW_SIZE.winW * pctObj.x) + WINDOW_SIZE.winX)
+    y := Round((WINDOW_SIZE.winH * pctObj.y) + WINDOW_SIZE.winY)
     w := Round(WINDOW_SIZE.winW * pctObj.w)
     h := Round(WINDOW_SIZE.winH * pctObj.h)
 
@@ -297,14 +370,14 @@ GetCaptureRect(gameHwnd := 0, pctObj := {}) {
 
     additionalHeight := 0
 
-    loop PLAYER_COUNT - 1 {
-        additionalHeight += ROW_HEIGHTS_COORDS[A_Index + 1]
+    loop PLAYER_COUNT {
+        additionalHeight += ROW_HEIGHTS_COORDS[A_Index]
     }
 
     WinGetPos(&winX, &winY, &winW, &winH, "ahk_id" gameHwnd)
 
-    x := Round((winX + winW) * pctObj.x)
-    y := Round((winY + winH) * pctObj.y)
+    x := Round((winW * pctObj.x) + winX)
+    y := Round((winH * pctObj.y) + winY)
     w := Round(winW * pctObj.w)
     h := Round(winH * pctObj.h) + additionalHeight
 
@@ -315,9 +388,8 @@ GetCaptureRect(gameHwnd := 0, pctObj := {}) {
     return { x: x, y: y, w: w, h: h }
 }
 
-CaptureGameRegionToClipboard(gameHwnd := 0) {
-    global BASE_SCREENSHOT_PCT
-    rect := GetCaptureRect(gameHwnd, BASE_SCREENSHOT_PCT)
+CaptureGameRegionToClipboard(gameHwnd := 0, basePct := {}) {
+    rect := GetCaptureRect(gameHwnd, basePct)
     if !rect
         return false
     return CaptureScreenRegionToClipboard(rect.x, rect.y, rect.w, rect.h, false)
