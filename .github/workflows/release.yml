@@ -37,7 +37,7 @@ jobs:
             - name: Create GitHub Release with the zip attached
               uses: softprops/action-gh-release@v2
               with:
-                  name: Playerlist Screenshotter ${{ github.ref_name }}
+                  name: Playerlist Capture ${{ github.ref_name }}
                   files: PlayerlistCapture-${{ github.ref_name }}.zip
                   generate_release_notes: true
               env:
