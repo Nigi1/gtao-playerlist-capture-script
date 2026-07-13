@@ -52,6 +52,8 @@ WINDOW_SIZE := {}
 
 PLAYER_COUNT := 0
 
+WIDTH_OFFSET := 0
+
 ; ------------------------------------------------------------------------------
 
 Hotkey(TRIGGER_HOTKEY_One, (*) => GetPixelColors())
@@ -143,11 +145,17 @@ GetPixelColors() {
 }
 
 getWindowSize(gameHwnd) {
-    global WINDOW_SIZE
+    global WINDOW_SIZE, WIDTH_OFFSET
     WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " gameHwnd)
+
+    wndScreenshotWidth := winH * (16 / 9)
+    if (winW != wndScreenshotWidth) {
+        WIDTH_OFFSET := (winW - wndScreenshotWidth) / 2
+    }
+
     WINDOW_SIZE.winX := winX
     WINDOW_SIZE.winY := winY
-    WINDOW_SIZE.winW := winW
+    WINDOW_SIZE.winW := wndScreenshotWidth
     WINDOW_SIZE.winH := winH
 }
 
@@ -177,12 +185,14 @@ getRowHeights() {
 }
 
 getScreenRelativeCoords(refObj) {
+    global WINDOW_SIZE, WIDTH_OFFSET
+
     scaleX := WINDOW_SIZE.winW / refObj.width
     scaleY := WINDOW_SIZE.winH / refObj.height
 
     return {
-        x: Round(refObj.x * scaleX) + WINDOW_SIZE.winX,
-        y: Round(refObj.y * scaleY) + WINDOW_SIZE.winY,
+        x: Round(refObj.x * scaleX) + WINDOW_SIZE.winX + WIDTH_OFFSET,
+        y: Round(refObj.y * scaleY) + WINDOW_SIZE.winY + WIDTH_OFFSET,
         w: Round(refObj.w * scaleX),
         h: Round(refObj.h * scaleY)
     }
@@ -330,6 +340,7 @@ CaptureGameRegionToClipboard(gameHwnd := 0, coords := {}) {
 }
 
 GetCaptureRect(gameHwnd := 0, coords := {}) {
+    global ROW_HEIGHTS_COORDS, PLAYER_COUNT, WIDTH_OFFSET, WINDOW_SIZE
     if !coords {
         MsgBox("Missing percentage object for capture region.")
         return
@@ -342,8 +353,8 @@ GetCaptureRect(gameHwnd := 0, coords := {}) {
     }
 
     return {
-        x: coords.x,
-        y: coords.y,
+        x: coords.x + WIDTH_OFFSET,
+        y: coords.y + WIDTH_OFFSET,
         w: coords.w,
         h: coords.h + additionalHeight
     }
