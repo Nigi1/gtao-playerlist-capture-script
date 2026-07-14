@@ -22,8 +22,6 @@ ROW_HEIGHTS_PX := Map(
     720, [25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25]
 )
 
-ROW_HEIGHTS_COORDS := []
-
 BASE_REF := {
     width: 3840,
     height: 2160,
@@ -42,15 +40,12 @@ COLORCHECK_REF := {
     h: 5
 }
 
-BASE_SCREENSHOT_COORDS := {}
-
-BASE_PIXEL_COORDS := {}
-
-WINDOW_SIZE := {}
-
-PLAYER_COUNT := 0
-
-WIDTH_OFFSET := 0
+basePlayerlistCoords := {}
+pixelCheckCoords := {}
+rowHeights := []
+windowSize := {}
+playerCount := 0
+widthOffset := 0
 
 ; ------------------------------------------------------------------------------
 
@@ -59,10 +54,10 @@ Hotkey(TRIGGER_HOTKEY, (*) => GetPixelColors())
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
 GetPixelColors() {
-    global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT, ROW_HEIGHTS_COORDS
-    global BASE_SCREENSHOT_COORDS, BASE_PIXEL_COORDS, PLAYER_COUNT
+    global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT, rowHeights
+    global basePlayerlistCoords, pixelCheckCoords, playerCount
 
-    PLAYER_COUNT := 0
+    playerCount := 0
 
     if !gameHwnd := WinExist("ahk_exe " GAME_WIN_TITLE) {
         MsgBox("Game window not found:`n" GAME_WIN_TITLE, "Discord Screenshot", "Icon!")
@@ -71,10 +66,10 @@ GetPixelColors() {
 
     getWindowSize(gameHwnd)
 
-    BASE_SCREENSHOT_COORDS := getScreenRelativeCoords(BASE_REF)
-    BASE_PIXEL_COORDS := getScreenRelativeCoords(COLORCHECK_REF)
+    basePlayerlistCoords := getScreenRelativeCoords(BASE_REF)
+    pixelCheckCoords := getScreenRelativeCoords(COLORCHECK_REF)
 
-    ROW_HEIGHTS_COORDS := getRowHeights()
+    rowHeights := getRowHeights()
 
     WinActivate("ahk_id" gameHwnd)
     WinWaitActive("ahk_id " gameHwnd, , 2)
@@ -83,7 +78,7 @@ GetPixelColors() {
     Sleep(200)
     findPlayerCount()
 
-    if !CaptureGameRegionToClipboard(gameHwnd, BASE_SCREENSHOT_COORDS) {
+    if !CaptureGameRegionToClipboard(gameHwnd, basePlayerlistCoords) {
         MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
         return
     }
@@ -93,7 +88,7 @@ GetPixelColors() {
     SendTextToDiscord(DISCORD_PASTE_TEXT)
     Sleep(100)
 
-    if PLAYER_COUNT = 16 {
+    if playerCount = 16 {
         WinActivate("ahk_id" gameHwnd)
         WinWaitActive("ahk_id " gameHwnd, , 2)
 
@@ -101,8 +96,8 @@ GetPixelColors() {
         Sleep(200)
         findPlayerCount()
 
-        if PLAYER_COUNT != 0 {
-            if !CaptureGameRegionToClipboard(gameHwnd, BASE_SCREENSHOT_COORDS) {
+        if playerCount != 0 {
+            if !CaptureGameRegionToClipboard(gameHwnd, basePlayerlistCoords) {
                 MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
                 return
             }
@@ -113,24 +108,24 @@ GetPixelColors() {
 }
 
 getWindowSize(gameHwnd) {
-    global WINDOW_SIZE, WIDTH_OFFSET
+    global windowSize, widthOffset
     WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " gameHwnd)
 
     wndScreenshotWidth := winH * (16 / 9)
     if (winW != wndScreenshotWidth) {
-        WIDTH_OFFSET := ((winW - wndScreenshotWidth) / 2) - 1
+        widthOffset := ((winW - wndScreenshotWidth) / 2) - 1
     }
 
-    WINDOW_SIZE.winX := winX
-    WINDOW_SIZE.winY := winY
-    WINDOW_SIZE.winW := wndScreenshotWidth
-    WINDOW_SIZE.winH := winH
+    windowSize.winX := winX
+    windowSize.winY := winY
+    windowSize.winW := wndScreenshotWidth
+    windowSize.winH := winH
 }
 
 getRowHeights() {
-    global WINDOW_SIZE, ROW_HEIGHTS_PX
+    global windowSize, ROW_HEIGHTS_PX
 
-    key := WINDOW_SIZE.winH
+    key := windowSize.winH
     if ROW_HEIGHTS_PX.Has(key) {
         return ROW_HEIGHTS_PX[key]
     } else {
@@ -153,14 +148,14 @@ getRowHeights() {
 }
 
 getScreenRelativeCoords(refObj) {
-    global WINDOW_SIZE, WIDTH_OFFSET
+    global windowSize, widthOffset
 
-    scaleX := WINDOW_SIZE.winW / refObj.width
-    scaleY := WINDOW_SIZE.winH / refObj.height
+    scaleX := windowSize.winW / refObj.width
+    scaleY := windowSize.winH / refObj.height
 
     return {
-        x: Round(refObj.x * scaleX) + WINDOW_SIZE.winX + WIDTH_OFFSET,
-        y: Round(refObj.y * scaleY) + WINDOW_SIZE.winY,
+        x: Round(refObj.x * scaleX) + windowSize.winX + widthOffset,
+        y: Round(refObj.y * scaleY) + windowSize.winY,
         w: Round(refObj.w * scaleX),
         h: Round(refObj.h * scaleY)
     }
@@ -173,17 +168,17 @@ SendOverlayKey(keySpec) {
 }
 
 findPlayerCount() {
-    global PLAYER_COUNT
+    global playerCount
 
-    PLAYER_COUNT := FindLastActivePlayerRow()
+    playerCount := FindLastActivePlayerRow()
 
     ; MsgBox("Detected Player Count: " PLAYER_COUNT)
 }
 
 FindLastActivePlayerRow(maxIndex := 16) {
-    global PLAYER_COUNT
+    global playerCount
     if RowHasColor(16) {
-        PLAYER_COUNT := 16
+        playerCount := 16
         return 16
     }
 
@@ -192,12 +187,12 @@ FindLastActivePlayerRow(maxIndex := 16) {
         while (index + 1 <= maxIndex && RowHasColor(index + 1)) {
             index++
         }
-        PLAYER_COUNT := index
+        playerCount := index
         return index
     }
 
     if !RowHasColor(1) {
-        PLAYER_COUNT := 0
+        playerCount := 0
         return 0
     }
 
@@ -205,38 +200,38 @@ FindLastActivePlayerRow(maxIndex := 16) {
     while (index + 1 <= maxIndex && RowHasColor(index + 1)) {
         index++
     }
-    PLAYER_COUNT := index
+    playerCount := index
     return index
 }
 
 RowHasColor(index) {
-    global BASE_PIXEL_COORDS, WINDOW_SIZE
-    playerRow := getPlayerRow(BASE_SCREENSHOT_COORDS, index)
-    fixHeight := Round(0.0023148 * WINDOW_SIZE.winH)
+    global basePlayerlistCoords, pixelCheckCoords, windowSize
+    playerRow := getPlayerRow(basePlayerlistCoords, index)
+    fixHeight := Round(0.0023148 * windowSize.winH)
     step := 5
 
-    if WINDOW_SIZE.winH <= 1440 && WINDOW_SIZE.winH > 1080 {
+    if windowSize.winH <= 1440 && windowSize.winH > 1080 {
         step := 3
-    } else if WINDOW_SIZE.winH <= 1080 {
+    } else if windowSize.winH <= 1080 {
         step := 2
     }
 
-    ; MsgBox(BASE_PIXEL_COORDS.x ", " playerRow.y + fixHeight ", " BASE_PIXEL_COORDS.w ", " BASE_PIXEL_COORDS.h)
+    ; MsgBox(pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords.h)
 
-    return HasColorCoverage(BASE_PIXEL_COORDS.x, playerRow.y + fixHeight, BASE_PIXEL_COORDS.w, BASE_PIXEL_COORDS.h,
+    return HasColorCoverage(pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w, pixelCheckCoords.h,
         0x000000, 0.1, step)
 }
 
 getPlayerRow(baseRow, index) {
-    global ROW_HEIGHTS_COORDS
+    global rowHeights
 
     y := baseRow.y
 
     loop index {
-        y += ROW_HEIGHTS_COORDS[A_Index]
+        y += rowHeights[A_Index]
     }
 
-    return { x: baseRow.x, y: y, w: baseRow.w, h: ROW_HEIGHTS_COORDS[index] }
+    return { x: baseRow.x, y: y, w: baseRow.w, h: rowHeights[index] }
 }
 
 HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation := 0) {
@@ -309,7 +304,7 @@ CaptureGameRegionToClipboard(gameHwnd := 0, coords := {}) {
 }
 
 GetCaptureRect(gameHwnd := 0, coords := {}) {
-    global ROW_HEIGHTS_COORDS, PLAYER_COUNT
+    global rowHeights, playerCount
     if !coords {
         MsgBox("Missing percentage object for capture region.")
         return
@@ -317,8 +312,8 @@ GetCaptureRect(gameHwnd := 0, coords := {}) {
 
     additionalHeight := 0
 
-    loop PLAYER_COUNT {
-        additionalHeight += ROW_HEIGHTS_COORDS[A_Index]
+    loop playerCount {
+        additionalHeight += rowHeights[A_Index]
     }
 
     return {
