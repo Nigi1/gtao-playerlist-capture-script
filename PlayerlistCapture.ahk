@@ -150,7 +150,7 @@ getWindowSize(gameHwnd) {
 
     wndScreenshotWidth := winH * (16 / 9)
     if (winW != wndScreenshotWidth) {
-        WIDTH_OFFSET := (winW - wndScreenshotWidth) / 2
+        WIDTH_OFFSET := ((winW - wndScreenshotWidth) / 2) - 1
     }
 
     WINDOW_SIZE.winX := winX
@@ -192,7 +192,7 @@ getScreenRelativeCoords(refObj) {
 
     return {
         x: Round(refObj.x * scaleX) + WINDOW_SIZE.winX + WIDTH_OFFSET,
-        y: Round(refObj.y * scaleY) + WINDOW_SIZE.winY + WIDTH_OFFSET,
+        y: Round(refObj.y * scaleY) + WINDOW_SIZE.winY,
         w: Round(refObj.w * scaleX),
         h: Round(refObj.h * scaleY)
     }
@@ -353,8 +353,8 @@ GetCaptureRect(gameHwnd := 0, coords := {}) {
     }
 
     return {
-        x: coords.x + WIDTH_OFFSET,
-        y: coords.y + WIDTH_OFFSET,
+        x: coords.x,
+        y: coords.y,
         w: coords.w,
         h: coords.h + additionalHeight
     }
