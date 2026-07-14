@@ -76,7 +76,7 @@ GetPixelColors() {
 
     SendOverlayKey(OVERLAY_KEY)
     Sleep(200)
-    findPlayerCount()
+    playerCount := FindLastActivePlayerRow()
 
     if !CaptureGameRegionToClipboard(gameHwnd, basePlayerlistCoords) {
         MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
@@ -94,7 +94,7 @@ GetPixelColors() {
 
         SendOverlayKey(OVERLAY_KEY)
         Sleep(200)
-        findPlayerCount()
+        playerCount := FindLastActivePlayerRow()
 
         if playerCount != 0 {
             if !CaptureGameRegionToClipboard(gameHwnd, basePlayerlistCoords) {
@@ -165,14 +165,6 @@ SendOverlayKey(keySpec) {
     SendInput("{z down}")
     Sleep(50)
     SendInput("{z up}")
-}
-
-findPlayerCount() {
-    global playerCount
-
-    playerCount := FindLastActivePlayerRow()
-
-    ; MsgBox("Detected Player Count: " PLAYER_COUNT)
 }
 
 FindLastActivePlayerRow(maxIndex := 16) {
