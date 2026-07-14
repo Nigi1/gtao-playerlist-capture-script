@@ -54,8 +54,8 @@ Hotkey(TRIGGER_HOTKEY, (*) => GetPixelColors())
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
 GetPixelColors() {
-    global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT, rowHeights
-    global basePlayerlistCoords, pixelCheckCoords, playerCount
+    global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
+    global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize
 
     playerCount := 0
 
@@ -64,11 +64,9 @@ GetPixelColors() {
         return
     }
 
-    getWindowSize(gameHwnd)
-
+    windowSize := getWindowSize(gameHwnd)
     basePlayerlistCoords := getScreenRelativeCoords(BASE_REF)
     pixelCheckCoords := getScreenRelativeCoords(COLORCHECK_REF)
-
     rowHeights := getRowHeights()
 
     WinActivate("ahk_id" gameHwnd)
@@ -116,10 +114,12 @@ getWindowSize(gameHwnd) {
         widthOffset := ((winW - wndScreenshotWidth) / 2) - 1
     }
 
-    windowSize.winX := winX
-    windowSize.winY := winY
-    windowSize.winW := wndScreenshotWidth
-    windowSize.winH := winH
+    return {
+        winX: winX,
+        winY: winY,
+        winW: wndScreenshotWidth,
+        winH: winH
+    }
 }
 
 getRowHeights() {
