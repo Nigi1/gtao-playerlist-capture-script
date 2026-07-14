@@ -10,10 +10,9 @@ OnExit(*) => Gdip_Shutdown(pToken)
 configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
-TRIGGER_HOTKEY_ONE := IniRead(configFile, "hotkeys", "capture_one", "F9")
-TRIGGER_HOTKEY_TWO := IniRead(configFile, "hotkeys", "capture_two", "F10")
-OVERLAY_KEY := IniRead(configFile, "hotkeys", "game_overlay", "z")
-DISCORD_PASTE_TEXT := IniRead(configFile, "hotkeys", "command_text", "")
+TRIGGER_HOTKEY := IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10")
+OVERLAY_KEY := IniRead(configFile, "Hotkeys", "OverlayToggleKey", "z")
+DISCORD_PASTE_TEXT := IniRead(configFile, "Discord", "Command", "")
 GAME_WIN_TITLE := "GTA5_enhanced.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
@@ -56,9 +55,9 @@ WIDTH_OFFSET := 0
 
 ; ------------------------------------------------------------------------------
 
-Hotkey(TRIGGER_HOTKEY_One, (*) => GetPixelColors())
+Hotkey(TRIGGER_HOTKEY, (*) => GetPixelColors())
 
-TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY_ONE " = Screenshot playerlist.", 1)
+TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
 ; RunScreenshotSequence(count := 1) {
 ;     global GAME_WIN_TITLE, DISCORD_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
