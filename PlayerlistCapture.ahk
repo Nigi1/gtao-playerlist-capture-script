@@ -2,7 +2,6 @@
 #SingleInstance Force
 #UseHook
 #Include <AHKv2_Screenshot_Tools>
-#Include <OCR>
 
 pToken := Gdip_Startup()
 OnExit(*) => Gdip_Shutdown(pToken)
@@ -129,7 +128,7 @@ getWindowSize(gameHwnd) {
 }
 
 getRowHeights() {
-    global ROW_HEIGHTS_COORDS, WINDOW_SIZE, ROW_HEIGHTS_PX
+    global WINDOW_SIZE, ROW_HEIGHTS_PX
 
     key := WINDOW_SIZE.winH
     if ROW_HEIGHTS_PX.Has(key) {
@@ -266,6 +265,7 @@ HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation :=
 }
 
 PasteToDiscord(gameHwnd) {
+    global DISCORD_WIN_TITLE
 
     discordHwnd := 0
 
@@ -309,7 +309,7 @@ CaptureGameRegionToClipboard(gameHwnd := 0, coords := {}) {
 }
 
 GetCaptureRect(gameHwnd := 0, coords := {}) {
-    global ROW_HEIGHTS_COORDS, PLAYER_COUNT, WIDTH_OFFSET, WINDOW_SIZE
+    global ROW_HEIGHTS_COORDS, PLAYER_COUNT
     if !coords {
         MsgBox("Missing percentage object for capture region.")
         return
