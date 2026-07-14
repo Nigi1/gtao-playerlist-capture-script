@@ -59,36 +59,6 @@ Hotkey(TRIGGER_HOTKEY, (*) => GetPixelColors())
 
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
-; RunScreenshotSequence(count := 1) {
-;     global GAME_WIN_TITLE, DISCORD_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
-
-;     if !gameHwnd := WinExist("ahk_exe " GAME_WIN_TITLE) {
-;         MsgBox("Game window not found:`n" GAME_WIN_TITLE, "Discord Screenshot", "Icon!")
-;         return
-;     }
-
-;     loop count {
-;         WinActivate("ahk_id" gameHwnd)
-;         WinWaitActive("ahk_id " gameHwnd, , 2)
-
-;         SendOverlayKey(OVERLAY_KEY)
-;         Sleep(350)
-
-;         if !CaptureGameRegionToClipboard(gameHwnd) {
-;             MsgBox("Failed to capture the first screenshot.", "Discord Screenshot", "Icon!")
-;             return
-;         }
-
-;         PasteToDiscord(gameHwnd)
-
-;         if (A_Index < count) {
-;             WinActivate("ahk_id " gameHwnd)
-;             WinWaitActive("ahk_id " gameHwnd, , 2)
-;         }
-;     }
-;     SendTextToDiscord(DISCORD_PASTE_TEXT)
-; }
-
 GetPixelColors() {
     global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT, ROW_HEIGHTS_COORDS
     global BASE_SCREENSHOT_COORDS, BASE_PIXEL_COORDS, PLAYER_COUNT
