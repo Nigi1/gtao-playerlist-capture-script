@@ -70,45 +70,6 @@ Hotkey(TRIGGER_HOTKEY, (*) => GetPixelColors())
 
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
-LoadConfig(configFile) {
-    global TRIGGER_HOTKEY, OVERLAY_KEY, DISCORD_PASTE_TEXT, SAFEZONE_SETTING
-
-    errors := []
-
-    TRIGGER_HOTKEY := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
-    if !IsValidKeyName(StripModifiers(TRIGGER_HOTKEY)) {
-        errors.Push("CaptureHotkey '" TRIGGER_HOTKEY "' is not a recognized key. Falling back to F10.")
-        TRIGGER_HOTKEY := "F10"
-    }
-
-    OVERLAY_KEY := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
-    if !IsValidKeyName(OVERLAY_KEY) {
-        errors.Push("OverlayToggleKey '" OVERLAY_KEY "' is not a recognized key. Falling back to 'z'.")
-        OVERLAY_KEY := "z"
-    }
-
-    DISCORD_PASTE_TEXT := Trim(IniRead(configFile, "Settings", "Command", ""))
-
-    rawSafezone := Trim(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
-    SAFEZONE_SETTING := 7
-    try {
-        val := Integer(rawSafezone)
-        if (val >= 0 && val <= 10)
-            SAFEZONE_SETTING := val
-        else
-            errors.Push("SafezoneSetting must be between 0-10. Falling back to 7.")
-    } catch {
-        errors.Push("SafezoneSetting must be a number. Falling back to 7.")
-    }
-
-    if (errors.Length > 0) {
-        msg := "Some settings in config.ini were invalid:`n`n"
-        for err in errors
-            msg .= "- " err "`n"
-        MsgBox(msg, "Config Warning", "Icon!")
-    }
-}
-
 GetPixelColors() {
     global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
     global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize
@@ -404,6 +365,45 @@ CaptureScreenRegionToClipboard(x, y, w, h, saveToFile := false, filePath := "") 
         return ok
     } catch {
         return false
+    }
+}
+
+LoadConfig(configFile) {
+    global TRIGGER_HOTKEY, OVERLAY_KEY, DISCORD_PASTE_TEXT, SAFEZONE_SETTING
+
+    errors := []
+
+    TRIGGER_HOTKEY := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
+    if !IsValidKeyName(StripModifiers(TRIGGER_HOTKEY)) {
+        errors.Push("CaptureHotkey '" TRIGGER_HOTKEY "' is not a recognized key. Falling back to F10.")
+        TRIGGER_HOTKEY := "F10"
+    }
+
+    OVERLAY_KEY := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
+    if !IsValidKeyName(OVERLAY_KEY) {
+        errors.Push("OverlayToggleKey '" OVERLAY_KEY "' is not a recognized key. Falling back to 'z'.")
+        OVERLAY_KEY := "z"
+    }
+
+    DISCORD_PASTE_TEXT := Trim(IniRead(configFile, "Settings", "Command", ""))
+
+    rawSafezone := Trim(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
+    SAFEZONE_SETTING := 7
+    try {
+        val := Integer(rawSafezone)
+        if (val >= 0 && val <= 10)
+            SAFEZONE_SETTING := val
+        else
+            errors.Push("SafezoneSetting must be between 0-10. Falling back to 7.")
+    } catch {
+        errors.Push("SafezoneSetting must be a number. Falling back to 7.")
+    }
+
+    if (errors.Length > 0) {
+        msg := "Some settings in config.ini were invalid:`n`n"
+        for err in errors
+            msg .= "- " err "`n"
+        MsgBox(msg, "Config Warning", "Icon!")
     }
 }
 
