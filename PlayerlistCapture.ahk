@@ -9,9 +9,10 @@ OnExit(*) => Gdip_Shutdown(pToken)
 configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
-TRIGGER_HOTKEY := IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10")
-OVERLAY_KEY := IniRead(configFile, "Hotkeys", "OverlayToggleKey", "z")
-DISCORD_PASTE_TEXT := IniRead(configFile, "Discord", "Command", "")
+TRIGGER_HOTKEY := "F10"
+OVERLAY_KEY := "z"
+DISCORD_PASTE_TEXT := ""
+SAFEZONE_SETTING := 7
 GAME_WIN_TITLE := "GTA5_enhanced.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
@@ -20,6 +21,20 @@ ROW_HEIGHTS_PX := Map(
     1440, [50, 50, 51, 50, 50, 51, 50, 50, 50, 50, 51, 50, 50, 50, 51, 50],
     1080, [37, 38, 38, 37, 38, 38, 37, 38, 38, 37, 38, 38, 38, 37, 38, 37],
     720, [25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25]
+)
+
+SAFEZONE_PX := Map(
+    0, { x: 196, y: 108 },
+    1, { x: 178, y: 98 },
+    2, { x: 158, y: 87 },
+    3, { x: 139, y: 76 },
+    4, { x: 120, y: 65 },
+    5, { x: 100, y: 54 },
+    6, { x: 81, y: 44 },
+    7, { x: 63, y: 33 },
+    8, { x: 44, y: 22 },
+    9, { x: 25, y: 11 },
+    10, { x: 5, y: 0 }
 )
 
 BASE_REF := {
@@ -34,8 +49,8 @@ BASE_REF := {
 COLORCHECK_REF := {
     width: 3840,
     height: 2160,
-    x: 864,
-    y: 113,
+    x: 801,
+    y: 80,
     w: 27,
     h: 5
 }
@@ -48,6 +63,8 @@ playerCount := 0
 widthOffset := 0
 
 ; ------------------------------------------------------------------------------
+
+LoadConfig(configFile)
 
 Hotkey(TRIGGER_HOTKEY, (*) => GetPixelColors())
 
@@ -65,6 +82,7 @@ GetPixelColors() {
     }
 
     windowSize := getWindowSize(gameHwnd)
+    applySafezoneOffset(SAFEZONE_SETTING)
     basePlayerlistCoords := getScreenRelativeCoords(BASE_REF)
     pixelCheckCoords := getScreenRelativeCoords(COLORCHECK_REF)
     rowHeights := getRowHeights()
@@ -120,6 +138,17 @@ getWindowSize(gameHwnd) {
         winW: wndScreenshotWidth,
         winH: winH
     }
+}
+
+applySafezoneOffset(offsetSetting) {
+    global SAFEZONE_PX, BASE_REF
+
+    if !SAFEZONE_PX.Has(offsetSetting) {
+        offsetSetting := 7
+    }
+    offset := SAFEZONE_PX[offsetSetting]
+    BASE_REF.x := offset.x
+    BASE_REF.y := offset.y
 }
 
 getRowHeights() {
@@ -208,9 +237,12 @@ RowHasColor(index) {
         step := 2
     }
 
-    ; MsgBox(pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords.h)
+    ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords
+    ;     .h
+    ; )
 
-    return HasColorCoverage(pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w, pixelCheckCoords.h,
+    return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w,
+        pixelCheckCoords.h,
         0x000000, 0.1, step)
 }
 
@@ -334,6 +366,53 @@ CaptureScreenRegionToClipboard(x, y, w, h, saveToFile := false, filePath := "") 
     } catch {
         return false
     }
+}
+
+LoadConfig(configFile) {
+    global TRIGGER_HOTKEY, OVERLAY_KEY, DISCORD_PASTE_TEXT, SAFEZONE_SETTING
+
+    errors := []
+
+    TRIGGER_HOTKEY := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
+    if !IsValidKeyName(StripModifiers(TRIGGER_HOTKEY)) {
+        errors.Push("CaptureHotkey '" TRIGGER_HOTKEY "' is not a recognized key. Falling back to F10.")
+        TRIGGER_HOTKEY := "F10"
+    }
+
+    OVERLAY_KEY := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
+    if !IsValidKeyName(OVERLAY_KEY) {
+        errors.Push("OverlayToggleKey '" OVERLAY_KEY "' is not a recognized key. Falling back to 'z'.")
+        OVERLAY_KEY := "z"
+    }
+
+    DISCORD_PASTE_TEXT := Trim(IniRead(configFile, "Settings", "Command", ""))
+
+    rawSafezone := Trim(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
+    SAFEZONE_SETTING := 7
+    try {
+        val := Integer(rawSafezone)
+        if (val >= 0 && val <= 10)
+            SAFEZONE_SETTING := val
+        else
+            errors.Push("SafezoneSetting must be between 0-10. Falling back to 7.")
+    } catch {
+        errors.Push("SafezoneSetting must be a number. Falling back to 7.")
+    }
+
+    if (errors.Length > 0) {
+        msg := "Some settings in config.ini were invalid:`n`n"
+        for err in errors
+            msg .= "- " err "`n"
+        MsgBox(msg, "Config Warning", "Icon!")
+    }
+}
+
+IsValidKeyName(keyName) {
+    return (GetKeyVK(keyName) != 0) || (GetKeySC(keyName) != 0)
+}
+
+StripModifiers(keyStr) {
+    return RegExReplace(keyStr, "^[\^!+#]+")
 }
 
 Gdip_CreateHBITMAPFromBitmap(pBitmap, Background := 0) {
