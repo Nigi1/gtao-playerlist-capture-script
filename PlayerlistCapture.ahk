@@ -265,7 +265,7 @@ FindLastActivePlayerRow(maxIndex := 16) {
 }
 
 RowHasColor(index) {
-    global basePlayerlistCoords, pixelCheckCoords, windowSize, BASE_REF
+    global basePlayerlistCoords, pixelCheckCoords, windowSize
     playerRow := getPlayerRow(basePlayerlistCoords, index)
     fixHeight := Round(0.0023148 * windowSize.winH)
     step := 5
@@ -276,9 +276,11 @@ RowHasColor(index) {
         step := 2
     }
 
-    ; MsgBox(pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords.h)
+    ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords
+    ;     .h
+    ; )
 
-    return HasColorCoverage(BASE_REF.x + pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w,
+    return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w,
         pixelCheckCoords.h,
         0x000000, 0.1, step)
 }
