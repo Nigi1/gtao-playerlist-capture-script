@@ -66,11 +66,11 @@ widthOffset := 0
 
 LoadConfig(configFile)
 
-Hotkey(TRIGGER_HOTKEY, (*) => GetPixelColors())
+Hotkey(TRIGGER_HOTKEY, (*) => CapturePlayerlist())
 
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
-GetPixelColors() {
+CapturePlayerlist() {
     global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
     global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize
 
@@ -81,11 +81,11 @@ GetPixelColors() {
         return
     }
 
-    windowSize := getWindowSize(gameHwnd)
-    applySafezoneOffset(SAFEZONE_SETTING)
-    basePlayerlistCoords := getScreenRelativeCoords(BASE_REF)
-    pixelCheckCoords := getScreenRelativeCoords(COLORCHECK_REF)
-    rowHeights := getRowHeights()
+    windowSize := GetWindowSize(gameHwnd)
+    ApplySafezoneOffset(SAFEZONE_SETTING)
+    basePlayerlistCoords := GetScreenRelativeCoords(BASE_REF)
+    pixelCheckCoords := GetScreenRelativeCoords(COLORCHECK_REF)
+    rowHeights := GetRowHeights()
 
     WinActivate("ahk_id" gameHwnd)
     WinWaitActive("ahk_id " gameHwnd, , 2)
@@ -123,7 +123,7 @@ GetPixelColors() {
     }
 }
 
-getWindowSize(gameHwnd) {
+GetWindowSize(gameHwnd) {
     global windowSize, widthOffset
     WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " gameHwnd)
 
@@ -140,7 +140,7 @@ getWindowSize(gameHwnd) {
     }
 }
 
-applySafezoneOffset(offsetSetting) {
+ApplySafezoneOffset(offsetSetting) {
     global SAFEZONE_PX, BASE_REF
 
     if !SAFEZONE_PX.Has(offsetSetting) {
@@ -151,7 +151,7 @@ applySafezoneOffset(offsetSetting) {
     BASE_REF.y := offset.y
 }
 
-getRowHeights() {
+GetRowHeights() {
     global windowSize, ROW_HEIGHTS_PX
 
     key := windowSize.winH
@@ -176,7 +176,7 @@ getRowHeights() {
     }
 }
 
-getScreenRelativeCoords(refObj) {
+GetScreenRelativeCoords(refObj) {
     global windowSize, widthOffset
 
     scaleX := windowSize.winW / refObj.width
@@ -227,7 +227,7 @@ FindLastActivePlayerRow(maxIndex := 16) {
 
 RowHasColor(index) {
     global basePlayerlistCoords, pixelCheckCoords, windowSize
-    playerRow := getPlayerRow(basePlayerlistCoords, index)
+    playerRow := GetPlayerRow(basePlayerlistCoords, index)
     fixHeight := Round(0.0023148 * windowSize.winH)
     step := 5
 
@@ -246,7 +246,7 @@ RowHasColor(index) {
         0x000000, 0.1, step)
 }
 
-getPlayerRow(baseRow, index) {
+GetPlayerRow(baseRow, index) {
     global rowHeights
 
     y := baseRow.y
