@@ -10,8 +10,9 @@ configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
 TRIGGER_HOTKEY := IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10")
-OVERLAY_KEY := IniRead(configFile, "Hotkeys", "OverlayToggleKey", "z")
-DISCORD_PASTE_TEXT := IniRead(configFile, "Discord", "Command", "")
+OVERLAY_KEY := IniRead(configFile, "Settings", "OverlayToggleKey", "z")
+DISCORD_PASTE_TEXT := IniRead(configFile, "Settings", "Command", "")
+SAFEZONE_SETTING := Integer(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
 GAME_WIN_TITLE := "GTA5_enhanced.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
@@ -20,6 +21,20 @@ ROW_HEIGHTS_PX := Map(
     1440, [50, 50, 51, 50, 50, 51, 50, 50, 50, 50, 51, 50, 50, 50, 51, 50],
     1080, [37, 38, 38, 37, 38, 38, 37, 38, 38, 37, 38, 38, 38, 37, 38, 37],
     720, [25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25]
+)
+
+SAFEZONE_PX := Map(
+    0, { x: 196, y: 108 },
+    1, { x: 178, y: 98 },
+    2, { x: 158, y: 87 },
+    3, { x: 139, y: 76 },
+    4, { x: 120, y: 65 },
+    5, { x: 100, y: 54 },
+    6, { x: 81, y: 44 },
+    7, { x: 63, y: 33 },
+    8, { x: 44, y: 22 },
+    9, { x: 25, y: 11 },
+    10, { x: 5, y: 0 }
 )
 
 BASE_REF := {
@@ -34,8 +49,8 @@ BASE_REF := {
 COLORCHECK_REF := {
     width: 3840,
     height: 2160,
-    x: 864,
-    y: 113,
+    x: 801,
+    y: 80,
     w: 27,
     h: 5
 }
@@ -65,6 +80,7 @@ GetPixelColors() {
     }
 
     windowSize := getWindowSize(gameHwnd)
+    applySafezoneOffset(SAFEZONE_SETTING)
     basePlayerlistCoords := getScreenRelativeCoords(BASE_REF)
     pixelCheckCoords := getScreenRelativeCoords(COLORCHECK_REF)
     rowHeights := getRowHeights()
@@ -120,6 +136,17 @@ getWindowSize(gameHwnd) {
         winW: wndScreenshotWidth,
         winH: winH
     }
+}
+
+applySafezoneOffset(offsetSetting) {
+    global SAFEZONE_PX, BASE_REF
+
+    if !SAFEZONE_PX.Has(offsetSetting) {
+        offsetSetting := 7
+    }
+    offset := SAFEZONE_PX[offsetSetting]
+    BASE_REF.x := offset.x
+    BASE_REF.y := offset.y
 }
 
 getRowHeights() {
@@ -197,7 +224,7 @@ FindLastActivePlayerRow(maxIndex := 16) {
 }
 
 RowHasColor(index) {
-    global basePlayerlistCoords, pixelCheckCoords, windowSize
+    global basePlayerlistCoords, pixelCheckCoords, windowSize, BASE_REF
     playerRow := getPlayerRow(basePlayerlistCoords, index)
     fixHeight := Round(0.0023148 * windowSize.winH)
     step := 5
@@ -210,7 +237,8 @@ RowHasColor(index) {
 
     ; MsgBox(pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords.h)
 
-    return HasColorCoverage(pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w, pixelCheckCoords.h,
+    return HasColorCoverage(BASE_REF.x + pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w,
+        pixelCheckCoords.h,
         0x000000, 0.1, step)
 }
 
