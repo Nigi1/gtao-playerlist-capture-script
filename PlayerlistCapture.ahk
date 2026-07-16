@@ -49,9 +49,9 @@ BASE_REF := {
 COLORCHECK_REF := {
     width: 3840,
     height: 2160,
-    x: 801,
+    x: 800,
     y: 80,
-    w: 27,
+    w: 28,
     h: 5
 }
 
@@ -84,6 +84,8 @@ CapturePlayerlist() {
     windowSize := GetWindowSize(gameHwnd)
     ApplySafezoneOffset(SAFEZONE_SETTING)
     basePlayerlistCoords := GetScreenRelativeCoords(BASE_REF)
+    if widthOffset > 0
+        basePlayerlistCoords.x += widthOffset
     pixelCheckCoords := GetScreenRelativeCoords(COLORCHECK_REF)
     rowHeights := GetRowHeights()
 
@@ -183,7 +185,7 @@ GetScreenRelativeCoords(refObj) {
     scaleY := windowSize.winH / refObj.height
 
     return {
-        x: Round(refObj.x * scaleX) + windowSize.winX + widthOffset,
+        x: Round(refObj.x * scaleX) + windowSize.winX,
         y: Round(refObj.y * scaleY) + windowSize.winY,
         w: Round(refObj.w * scaleX),
         h: Round(refObj.h * scaleY)
