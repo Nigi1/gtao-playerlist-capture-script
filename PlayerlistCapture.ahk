@@ -227,8 +227,7 @@ FindLastActivePlayerRow(maxIndex := 16) {
 
 RowHasColor(index) {
     global basePlayerlistCoords, pixelCheckCoords, windowSize
-    playerRow := GetPlayerRow(basePlayerlistCoords, index)
-    fixHeight := Round(0.0023148 * windowSize.winH)
+    playerRowY := GetPlayerRowY(basePlayerlistCoords, pixelCheckCoords, index)
     step := 5
 
     if windowSize.winH <= 1440 && windowSize.winH > 1080 {
@@ -237,25 +236,26 @@ RowHasColor(index) {
         step := 2
     }
 
-    ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords
+    ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRowY ", " pixelCheckCoords.w ", " pixelCheckCoords
     ;     .h
     ; )
 
-    return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w,
+    return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRowY,
+        pixelCheckCoords.w,
         pixelCheckCoords.h,
         0x000000, 0.1, step)
 }
 
-GetPlayerRow(baseRow, index) {
+GetPlayerRowY(baseRow, checkCoords, index) {
     global rowHeights
 
-    y := baseRow.y
+    y := baseRow.y + checkCoords.y
 
-    loop index {
+    loop index - 1 {
         y += rowHeights[A_Index]
     }
 
-    return { x: baseRow.x, y: y, w: baseRow.w, h: rowHeights[index] }
+    return y
 }
 
 HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation := 0) {
