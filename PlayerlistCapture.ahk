@@ -237,10 +237,6 @@ RowHasColor(index) {
         step := 1
     }
 
-    ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRowY ", " pixelCheckCoords.w ", " pixelCheckCoords
-    ;     .h
-    ; )
-
     return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRowY,
         pixelCheckCoords.w,
         pixelCheckCoords.h,
@@ -279,7 +275,6 @@ HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation :=
     }
 
     percentage := (matchCount / totalSamples) * 100
-    ; MsgBox("Color Coverage: " Round(percentage, 2) "%`nMatches: " matchCount "`nTotal Samples: " totalSamples)
 
     return (matchCount / totalSamples) >= minPercent
 }
