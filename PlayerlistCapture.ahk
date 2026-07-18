@@ -49,9 +49,9 @@ BASE_REF := {
 COLORCHECK_REF := {
     width: 3840,
     height: 2160,
-    x: 801,
+    x: 800,
     y: 80,
-    w: 27,
+    w: 28,
     h: 5
 }
 
@@ -84,6 +84,8 @@ CapturePlayerlist() {
     windowSize := GetWindowSize(gameHwnd)
     ApplySafezoneOffset(SAFEZONE_SETTING)
     basePlayerlistCoords := GetScreenRelativeCoords(BASE_REF)
+    if widthOffset > 0
+        basePlayerlistCoords.x += widthOffset
     pixelCheckCoords := GetScreenRelativeCoords(COLORCHECK_REF)
     rowHeights := GetRowHeights()
 
@@ -183,7 +185,7 @@ GetScreenRelativeCoords(refObj) {
     scaleY := windowSize.winH / refObj.height
 
     return {
-        x: Round(refObj.x * scaleX) + windowSize.winX + widthOffset,
+        x: Round(refObj.x * scaleX) + windowSize.winX,
         y: Round(refObj.y * scaleY) + windowSize.winY,
         w: Round(refObj.w * scaleX),
         h: Round(refObj.h * scaleY)
@@ -227,43 +229,44 @@ FindLastActivePlayerRow(maxIndex := 16) {
 
 RowHasColor(index) {
     global basePlayerlistCoords, pixelCheckCoords, windowSize
-    playerRow := GetPlayerRow(basePlayerlistCoords, index)
-    fixHeight := Round(0.0023148 * windowSize.winH)
-    step := 5
+    playerRowY := GetPlayerRowY(basePlayerlistCoords, pixelCheckCoords, index)
 
-    if windowSize.winH <= 1440 && windowSize.winH > 1080 {
-        step := 3
-    } else if windowSize.winH <= 1080 {
+    if windowSize.winH > 1440 {
+        step := 4
+    } else if windowSize.winH > 720 {
         step := 2
+    } else {
+        step := 1
     }
 
-    ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRow.y + fixHeight ", " pixelCheckCoords.w ", " pixelCheckCoords
+    ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRowY ", " pixelCheckCoords.w ", " pixelCheckCoords
     ;     .h
     ; )
 
-    return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRow.y + fixHeight, pixelCheckCoords.w,
+    return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRowY,
+        pixelCheckCoords.w,
         pixelCheckCoords.h,
         0x000000, 0.1, step)
 }
 
-GetPlayerRow(baseRow, index) {
+GetPlayerRowY(baseRow, checkCoords, index) {
     global rowHeights
 
-    y := baseRow.y
+    y := baseRow.y + checkCoords.y
 
-    loop index {
+    loop index - 1 {
         y += rowHeights[A_Index]
     }
 
-    return { x: baseRow.x, y: y, w: baseRow.w, h: rowHeights[index] }
+    return y
 }
 
 HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation := 0) {
     totalSamples := 0
     matchCount := 0
 
-    x2 := x1 + w
-    y2 := y1 + h
+    x2 := x1 + w - 1
+    y2 := y1 + h - 1
 
     y := y1
     while (y <= y2) {
