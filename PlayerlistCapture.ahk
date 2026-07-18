@@ -200,31 +200,29 @@ SendOverlayKey(keySpec) {
 
 FindLastActivePlayerRow(maxIndex := 16) {
     global playerCount
-    if RowHasColor(16) {
-        playerCount := 16
-        return 16
-    }
-
-    if RowHasColor(8) {
-        index := 8
-        while (index + 1 <= maxIndex && RowHasColor(index + 1)) {
-            index++
-        }
-        playerCount := index
-        return index
-    }
 
     if !RowHasColor(1) {
         playerCount := 0
         return 0
     }
 
-    index := 1
-    while (index + 1 <= maxIndex && RowHasColor(index + 1)) {
-        index++
+    if RowHasColor(maxIndex) {
+        playerCount := maxIndex
+        return maxIndex
     }
-    playerCount := index
-    return index
+
+    lo := 1
+    hi := maxIndex
+    while (hi - lo > 1) {
+        mid := (lo + hi) // 2
+        if RowHasColor(mid)
+            lo := mid
+        else
+            hi := mid
+    }
+
+    playerCount := lo
+    return lo
 }
 
 RowHasColor(index) {
