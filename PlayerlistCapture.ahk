@@ -230,12 +230,13 @@ FindLastActivePlayerRow(maxIndex := 16) {
 RowHasColor(index) {
     global basePlayerlistCoords, pixelCheckCoords, windowSize
     playerRowY := GetPlayerRowY(basePlayerlistCoords, pixelCheckCoords, index)
-    step := 5
 
-    if windowSize.winH <= 1440 && windowSize.winH > 1080 {
-        step := 3
-    } else if windowSize.winH <= 1080 {
+    if windowSize.winH > 1440 {
+        step := 4
+    } else if windowSize.winH > 720 {
         step := 2
+    } else {
+        step := 1
     }
 
     ; MsgBox(basePlayerlistCoords.x + pixelCheckCoords.x ", " playerRowY ", " pixelCheckCoords.w ", " pixelCheckCoords
@@ -264,8 +265,8 @@ HasColorCoverage(x1, y1, w, h, color, minPercent := 0.1, step := 4, variation :=
     totalSamples := 0
     matchCount := 0
 
-    x2 := x1 + w
-    y2 := y1 + h
+    x2 := x1 + w - 1
+    y2 := y1 + h - 1
 
     y := y1
     while (y <= y2) {
