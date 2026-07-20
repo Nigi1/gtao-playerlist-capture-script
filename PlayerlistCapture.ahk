@@ -67,6 +67,7 @@ widthOffset := 0
 LoadConfig(configFile)
 
 Hotkey(TRIGGER_HOTKEY, (*) => CapturePlayerlist())
+Hotkey("F6", (*) => UpdatePasteText())
 
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
@@ -123,6 +124,32 @@ CapturePlayerlist() {
             PasteToDiscord(gameHwnd)
         }
     }
+}
+
+UpdatePasteText() {
+    global DISCORD_PASTE_TEXT
+
+    existingValue := DISCORD_PASTE_TEXT
+
+    inputGui := Gui("+AlwaysOnTop", "Set Value")
+    inputGui.SetFont("s10")
+    inputGui.Add("Text", , "Enter value:")
+    editCtrl := inputGui.Add("Edit", "w200 vUserInput", existingValue)
+
+    btnSaveTemp := inputGui.Add("Button", "w95 x10 y+10 Default", "Save")
+    btnSaveTemp.OnEvent("Click", (*) => SaveTemp(inputGui, editCtrl))
+
+    inputGui.OnEvent("Close", (*) => inputGui.Destroy())
+    inputGui.Show()
+}
+
+SaveTemp(inputGui, editCtrl) {
+    global DISCORD_PASTE_TEXT
+
+    DISCORD_PASTE_TEXT := editCtrl.Text
+    ToolTip("Value set: " DISCORD_PASTE_TEXT, 0, 0)
+    SetTimer(() => ToolTip(), -2000)
+    inputGui.Destroy()
 }
 
 GetWindowSize(gameHwnd) {
