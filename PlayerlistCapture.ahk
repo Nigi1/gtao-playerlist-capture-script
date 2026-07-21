@@ -9,7 +9,10 @@ OnExit(*) => Gdip_Shutdown(pToken)
 configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
+registeredHotkeys := Map()
 TRIGGER_HOTKEY := "F10"
+tempCmdHotkey := "F6"
+settingsHotkey := "F7"
 OVERLAY_KEY := "z"
 DISCORD_PASTE_TEXT := ""
 SAFEZONE_SETTING := 7
@@ -66,8 +69,12 @@ widthOffset := 0
 
 LoadConfig(configFile)
 
-Hotkey(TRIGGER_HOTKEY, (*) => CapturePlayerlist())
-Hotkey("F6", (*) => UpdatePasteTextTemp())
+RegisterHotkey("capture", TRIGGER_HOTKEY, (*) => CapturePlayerlist())
+RegisterHotkey("tempCmd", tempCmdHotkey, (*) => UpdatePasteTextTemp())
+RegisterHotkey("settings", settingsHotkey, (*) => ShowSettingsForm())
+; Hotkey(TRIGGER_HOTKEY, (*) => CapturePlayerlist())
+; Hotkey(tempCmdHotkey, (*) => UpdatePasteTextTemp())
+; Hotkey(settingsHotkey, (*) => ShowSettingsForm())
 
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
@@ -129,6 +136,8 @@ CapturePlayerlist() {
 UpdatePasteTextTemp() {
     global DISCORD_PASTE_TEXT
 
+    Suspend(true)
+
     existingValue := DISCORD_PASTE_TEXT
 
     inputGui := Gui("+AlwaysOnTop", "Set Value")
@@ -148,8 +157,8 @@ UpdatePasteTextTemp() {
     btnSaveTemp := inputGui.Add("Button", "w260 h32 y+15 Default", "Save")
     btnSaveTemp.OnEvent("Click", (*) => SaveTempText(inputGui, editCtrl))
 
-    inputGui.OnEvent("Close", (*) => inputGui.Destroy())
-    inputGui.OnEvent("Escape", (*) => inputGui.Destroy())
+    inputGui.OnEvent("Close", (*) => CloseGui(inputGui))
+    inputGui.OnEvent("Escape", (*) => CloseGui(inputGui))
     inputGui.Show("w300 Center")
 }
 
@@ -160,6 +169,113 @@ SaveTempText(inputGui, editCtrl) {
     ToolTip('Value set: "' DISCORD_PASTE_TEXT '"', 0, 0)
     SetTimer(() => ToolTip(), -2000)
     inputGui.Destroy()
+    Suspend(false)
+}
+
+ShowSettingsForm() {
+    global configFile
+
+    Suspend(true)
+
+    settingsGui := Gui("+AlwaysOnTop", "Settings")
+    settingsGui.BackColor := "F3F3F3"
+    settingsGui.MarginX := 20
+    settingsGui.MarginY := 15
+    settingsGui.SetFont("s10 c333333", "Segoe UI")
+
+    settingsGui.Add("Text", "w260", "Settings")
+    settingsGui.SetFont("s9 c666666")
+    settingsGui.Add("Text", "w260 y+2", "Changes are saved to config.ini")
+
+    settingsGui.SetFont("s10 cBlack", "Segoe UI")
+
+    settingsGui.Add("Text", "w120 y+15", "Capture Hotkey:")
+    editCapture := settingsGui.Add("Hotkey", "w150 x+10 yp", IniRead(configFile, "Hotkeys", "CaptureHotkey", ""))
+
+    settingsGui.Add("Text", "w120 x20 y+10", "Command Hotkey:")
+    editTempCommand := settingsGui.Add("Hotkey", "w150 x+10 yp", IniRead(configFile, "Hotkeys", "TempCommandHotkey", ""
+    ))
+
+    settingsGui.Add("Text", "w120 x20 y+10", "Settings Hotkey:")
+    editSettings := settingsGui.Add("Hotkey", "w150 x+10 yp", IniRead(configFile, "Hotkeys", "SettingsHotkey", ""))
+
+    settingsGui.Add("Text", "w120 x20 y+10", "Overlay Toggle Key:")
+    editOverlay := settingsGui.Add("Edit", "w150 x+10 yp", IniRead(configFile, "Settings", "OverlayToggleKey", ""))
+
+    settingsGui.Add("Text", "w120 x20 y+10", "Command:")
+    editCommand := settingsGui.Add("Edit", "w150 x+10 yp", IniRead(configFile, "Settings", "Command", ""))
+
+    settingsGui.Add("Text", "w120 x20 y+10", "Safezone Setting:")
+    ddlSafezone := settingsGui.Add("DropDownList", "w150 x+10 yp Choose" (IniRead(configFile, "Settings",
+        "SafezoneSetting", "0") + 1), ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"])
+
+    settingsGui.SetFont("s10 cWhite bold")
+    btnSave := settingsGui.Add("Button", "w280 h32 x20 y+20 Default", "Save")
+    btnSave.OnEvent("Click", (*) => SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings,
+        editOverlay, editCommand, ddlSafezone))
+
+    settingsGui.OnEvent("Close", (*) => CloseGui(settingsGui))
+    settingsGui.OnEvent("Escape", (*) => CloseGui(settingsGui))
+    settingsGui.Show("w320 Center")
+}
+
+CloseGui(settingsGui) {
+    settingsGui.Destroy()
+    Suspend(false)
+}
+
+SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOverlay, editCommand, ddlSafezone) {
+    global configFile
+
+    newCaptureHotkey := editCapture.Value
+    newTempCmdHotkey := editTempCommand.Value
+    newSettingsHotkey := editSettings.Value
+
+    IniWrite(newCaptureHotkey, configFile, "Hotkeys", "CaptureHotkey")
+    IniWrite(newTempCmdHotkey, configFile, "Hotkeys", "TempCommandHotkey")
+    IniWrite(newSettingsHotkey, configFile, "Hotkeys", "SettingsHotkey")
+    IniWrite(editOverlay.Text, configFile, "Settings", "OverlayToggleKey")
+    IniWrite(editCommand.Text, configFile, "Settings", "Command")
+    IniWrite(ddlSafezone.Text, configFile, "Settings", "SafezoneSetting")
+
+    settingsGui.Destroy()
+    Suspend(false)
+
+    LoadConfig(configFile)
+
+    UpdateHotkey("capture", newCaptureHotkey)
+    UpdateHotkey("tempCmd", newTempCmdHotkey)
+    UpdateHotkey("settings", newSettingsHotkey)
+}
+
+RegisterHotkey(name, keyString, callback) {
+    global registeredHotkeys
+
+    if (keyString != "")
+        Hotkey(keyString, callback, "On")
+
+    registeredHotkeys[name] := { key: keyString, callback: callback }
+}
+
+UpdateHotkey(name, newKeyString) {
+    global registeredHotkeys
+
+    if !registeredHotkeys.Has(name) {
+        throw Error("Unknown hotkey name: " name)
+    }
+
+    entry := registeredHotkeys[name]
+    oldKeyString := entry.key
+
+    if (oldKeyString != "" && oldKeyString != newKeyString) {
+        try Hotkey(oldKeyString, "Off")
+    }
+
+    if (newKeyString != "") {
+        Hotkey(newKeyString, entry.callback, "On")
+    }
+
+    entry.key := newKeyString
 }
 
 GetWindowSize(gameHwnd) {
