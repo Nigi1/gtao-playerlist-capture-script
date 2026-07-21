@@ -67,7 +67,7 @@ widthOffset := 0
 LoadConfig(configFile)
 
 Hotkey(TRIGGER_HOTKEY, (*) => CapturePlayerlist())
-Hotkey("F6", (*) => UpdatePasteText())
+Hotkey("F6", (*) => UpdatePasteTextTemp())
 
 TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
 
@@ -126,21 +126,31 @@ CapturePlayerlist() {
     }
 }
 
-UpdatePasteText() {
+UpdatePasteTextTemp() {
     global DISCORD_PASTE_TEXT
 
     existingValue := DISCORD_PASTE_TEXT
 
     inputGui := Gui("+AlwaysOnTop", "Set Value")
-    inputGui.SetFont("s10")
-    inputGui.Add("Text", , "Enter value:")
-    editCtrl := inputGui.Add("Edit", "w200 vUserInput", existingValue)
+    inputGui.BackColor := "F3F3F3"
+    inputGui.MarginX := 20
+    inputGui.MarginY := 15
+    inputGui.SetFont("s10 c333333", "Segoe UI")
 
-    btnSaveTemp := inputGui.Add("Button", "w95 x10 y+10 Default", "Save")
+    inputGui.Add("Text", "w260", "Discord Paste Command")
+    inputGui.SetFont("s9 c666666")
+    inputGui.Add("Text", "w260 y+2", "This value is used for the current session only.")
+
+    inputGui.SetFont("s11 cBlack", "Segoe UI")
+    editCtrl := inputGui.Add("Edit", "w260 h30 y+12 vUserInput", existingValue)
+
+    inputGui.SetFont("s10 cWhite bold")
+    btnSaveTemp := inputGui.Add("Button", "w260 h32 y+15 Default", "Save")
     btnSaveTemp.OnEvent("Click", (*) => SaveTempText(inputGui, editCtrl))
 
     inputGui.OnEvent("Close", (*) => inputGui.Destroy())
-    inputGui.Show()
+    inputGui.OnEvent("Escape", (*) => inputGui.Destroy())
+    inputGui.Show("w300 Center")
 }
 
 SaveTempText(inputGui, editCtrl) {
