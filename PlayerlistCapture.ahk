@@ -147,7 +147,7 @@ SaveTempText(inputGui, editCtrl) {
     global DISCORD_PASTE_TEXT
 
     DISCORD_PASTE_TEXT := editCtrl.Text
-    ToolTip("Value set: " DISCORD_PASTE_TEXT, 0, 0)
+    ToolTip('Value set: "' DISCORD_PASTE_TEXT '"', 0, 0)
     SetTimer(() => ToolTip(), -2000)
     inputGui.Destroy()
 }
