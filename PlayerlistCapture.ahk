@@ -10,12 +10,12 @@ configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
 registeredHotkeys := Map()
-TRIGGER_HOTKEY := "F10"
+captureHotkey := "F10"
 tempCmdHotkey := "F6"
 settingsHotkey := "F7"
-OVERLAY_KEY := "z"
-DISCORD_PASTE_TEXT := ""
-SAFEZONE_SETTING := 7
+overlayKey := "z"
+discordPasteText := ""
+safezoneSetting := 7
 GAME_WIN_TITLE := "GTA5_enhanced.exe"
 DISCORD_WIN_TITLE := "Discord.exe"
 
@@ -69,17 +69,17 @@ widthOffset := 0
 
 LoadConfig(configFile)
 
-RegisterHotkey("capture", TRIGGER_HOTKEY, (*) => CapturePlayerlist())
+RegisterHotkey("capture", captureHotkey, (*) => CapturePlayerlist())
 RegisterHotkey("tempCmd", tempCmdHotkey, (*) => UpdatePasteTextTemp())
 RegisterHotkey("settings", settingsHotkey, (*) => ShowSettingsForm())
-; Hotkey(TRIGGER_HOTKEY, (*) => CapturePlayerlist())
-; Hotkey(tempCmdHotkey, (*) => UpdatePasteTextTemp())
-; Hotkey(settingsHotkey, (*) => ShowSettingsForm())
 
-TrayTip("Discord Screenshot", "Ready.`n" TRIGGER_HOTKEY " = Screenshot playerlist.", 1)
+TrayTip(captureHotkey " = Capture playerlist`n"
+    . tempCmdHotkey " = Edit command (temporary)`n"
+    . settingsHotkey " = Open settings",
+    "Playerlist Capture", 1)
 
 CapturePlayerlist() {
-    global GAME_WIN_TITLE, OVERLAY_KEY, DISCORD_PASTE_TEXT
+    global GAME_WIN_TITLE, overlayKey, discordPasteText
     global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize
 
     playerCount := 0
@@ -90,7 +90,7 @@ CapturePlayerlist() {
     }
 
     windowSize := GetWindowSize(gameHwnd)
-    ApplySafezoneOffset(SAFEZONE_SETTING)
+    ApplySafezoneOffset(safezoneSetting)
     basePlayerlistCoords := GetScreenRelativeCoords(BASE_REF)
     if widthOffset > 0
         basePlayerlistCoords.x += widthOffset
@@ -100,7 +100,7 @@ CapturePlayerlist() {
     WinActivate("ahk_id" gameHwnd)
     WinWaitActive("ahk_id " gameHwnd, , 2)
 
-    SendOverlayKey(OVERLAY_KEY)
+    SendOverlayKey(overlayKey)
     Sleep(200)
     playerCount := FindLastActivePlayerRow()
 
@@ -111,14 +111,14 @@ CapturePlayerlist() {
 
     PasteToDiscord(gameHwnd)
 
-    SendTextToDiscord(DISCORD_PASTE_TEXT)
+    SendTextToDiscord(discordPasteText)
     Sleep(100)
 
     if playerCount = 16 {
         WinActivate("ahk_id" gameHwnd)
         WinWaitActive("ahk_id " gameHwnd, , 2)
 
-        SendOverlayKey(OVERLAY_KEY)
+        SendOverlayKey(overlayKey)
         Sleep(200)
         playerCount := FindLastActivePlayerRow()
 
@@ -134,11 +134,11 @@ CapturePlayerlist() {
 }
 
 UpdatePasteTextTemp() {
-    global DISCORD_PASTE_TEXT
+    global discordPasteText
 
     Suspend(true)
 
-    existingValue := DISCORD_PASTE_TEXT
+    existingValue := discordPasteText
 
     inputGui := Gui("+AlwaysOnTop", "Set Value")
     inputGui.BackColor := "F3F3F3"
@@ -163,10 +163,10 @@ UpdatePasteTextTemp() {
 }
 
 SaveTempText(inputGui, editCtrl) {
-    global DISCORD_PASTE_TEXT
+    global discordPasteText
 
-    DISCORD_PASTE_TEXT := editCtrl.Text
-    ToolTip('Value set: "' DISCORD_PASTE_TEXT '"', 0, 0)
+    discordPasteText := editCtrl.Text
+    ToolTip('Value set: "' discordPasteText '"', 0, 0)
     SetTimer(() => ToolTip(), -2000)
     inputGui.Destroy()
     Suspend(false)
@@ -518,30 +518,30 @@ CaptureScreenRegionToClipboard(x, y, w, h, saveToFile := false, filePath := "") 
 }
 
 LoadConfig(configFile) {
-    global TRIGGER_HOTKEY, OVERLAY_KEY, DISCORD_PASTE_TEXT, SAFEZONE_SETTING
+    global captureHotkey, overlayKey, discordPasteText, safezoneSetting
 
     errors := []
 
-    TRIGGER_HOTKEY := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
-    if !IsValidKeyName(StripModifiers(TRIGGER_HOTKEY)) {
-        errors.Push("CaptureHotkey '" TRIGGER_HOTKEY "' is not a recognized key. Falling back to F10.")
-        TRIGGER_HOTKEY := "F10"
+    captureHotkey := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
+    if !IsValidKeyName(StripModifiers(captureHotkey)) {
+        errors.Push("CaptureHotkey '" captureHotkey "' is not a recognized key. Falling back to F10.")
+        captureHotkey := "F10"
     }
 
-    OVERLAY_KEY := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
-    if !IsValidKeyName(OVERLAY_KEY) {
-        errors.Push("OverlayToggleKey '" OVERLAY_KEY "' is not a recognized key. Falling back to 'z'.")
-        OVERLAY_KEY := "z"
+    overlayKey := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
+    if !IsValidKeyName(overlayKey) {
+        errors.Push("OverlayToggleKey '" overlayKey "' is not a recognized key. Falling back to 'z'.")
+        overlayKey := "z"
     }
 
-    DISCORD_PASTE_TEXT := Trim(IniRead(configFile, "Settings", "Command", ""))
+    discordPasteText := Trim(IniRead(configFile, "Settings", "Command", ""))
 
     rawSafezone := Trim(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
-    SAFEZONE_SETTING := 7
+    safezoneSetting := 7
     try {
         val := Integer(rawSafezone)
         if (val >= 0 && val <= 10)
-            SAFEZONE_SETTING := val
+            safezoneSetting := val
         else
             errors.Push("SafezoneSetting must be between 0-10. Falling back to 7.")
     } catch {
