@@ -137,13 +137,13 @@ UpdatePasteText() {
     editCtrl := inputGui.Add("Edit", "w200 vUserInput", existingValue)
 
     btnSaveTemp := inputGui.Add("Button", "w95 x10 y+10 Default", "Save")
-    btnSaveTemp.OnEvent("Click", (*) => SaveTemp(inputGui, editCtrl))
+    btnSaveTemp.OnEvent("Click", (*) => SaveTempText(inputGui, editCtrl))
 
     inputGui.OnEvent("Close", (*) => inputGui.Destroy())
     inputGui.Show()
 }
 
-SaveTemp(inputGui, editCtrl) {
+SaveTempText(inputGui, editCtrl) {
     global DISCORD_PASTE_TEXT
 
     DISCORD_PASTE_TEXT := editCtrl.Text
