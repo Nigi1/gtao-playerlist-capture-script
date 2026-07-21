@@ -166,8 +166,6 @@ SaveTempText(inputGui, editCtrl) {
     global discordPasteText
 
     discordPasteText := editCtrl.Text
-    ToolTip('Value set: "' discordPasteText '"', 0, 0)
-    SetTimer(() => ToolTip(), -2000)
     inputGui.Destroy()
     Suspend(false)
 }
