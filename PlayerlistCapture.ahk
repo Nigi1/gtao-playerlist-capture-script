@@ -6,6 +6,9 @@
 pToken := Gdip_Startup()
 OnExit(*) => Gdip_Shutdown(pToken)
 
+DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
+CoordMode("Pixel", "Screen")
+
 configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
@@ -52,7 +55,7 @@ BASE_REF := {
 COLORCHECK_REF := {
     width: 3840,
     height: 2160,
-    x: 800,
+    x: 863,
     y: 80,
     w: 28,
     h: 5
@@ -285,11 +288,16 @@ GetWindowSize(gameHwnd) {
         widthOffset := ((winW - wndScreenshotWidth) / 2) - 1
     }
 
+    scaleX := winW / 3840
+    scaleY := winH / 2160
+
     return {
         winX: winX,
         winY: winY,
         winW: wndScreenshotWidth,
-        winH: winH
+        winH: winH,
+        winScaleX: scaleX,
+        winScaleY: scaleY
     }
 }
 
@@ -330,16 +338,13 @@ GetRowHeights() {
 }
 
 GetScreenRelativeCoords(refObj) {
-    global windowSize, widthOffset
-
-    scaleX := windowSize.winW / refObj.width
-    scaleY := windowSize.winH / refObj.height
+    global windowSize
 
     return {
-        x: Round(refObj.x * scaleX) + windowSize.winX,
-        y: Round(refObj.y * scaleY) + windowSize.winY,
-        w: Round(refObj.w * scaleX),
-        h: Round(refObj.h * scaleY)
+        x: Round(refObj.x * windowSize.winScaleX) + windowSize.winX,
+        y: Round(refObj.y * windowSize.winScaleY) + windowSize.winY,
+        w: Round(refObj.w * windowSize.winScaleX),
+        h: Round(refObj.h * windowSize.winScaleY)
     }
 }
 
@@ -388,7 +393,7 @@ RowHasColor(index) {
         step := 1
     }
 
-    return HasColorCoverage(basePlayerlistCoords.x + pixelCheckCoords.x, playerRowY,
+    return HasColorCoverage(pixelCheckCoords.x, playerRowY,
         pixelCheckCoords.w,
         pixelCheckCoords.h,
         0x000000, 0.1, step)
