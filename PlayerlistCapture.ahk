@@ -56,7 +56,7 @@ COLORCHECK_REF := {
     width: 3840,
     height: 2160,
     x: 863,
-    y: 80,
+    y: 113,
     w: 28,
     h: 5
 }
@@ -402,7 +402,7 @@ RowHasColor(index) {
 GetPlayerRowY(baseRow, checkCoords, index) {
     global rowHeights
 
-    y := baseRow.y + checkCoords.y
+    y := checkCoords.y
 
     loop index - 1 {
         y += rowHeights[A_Index]
