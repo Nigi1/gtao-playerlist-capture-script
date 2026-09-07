@@ -590,6 +590,18 @@ LoadConfig(configFile) {
         captureHotkey := "F10"
     }
 
+    tempCmdHotkey := Trim(IniRead(configFile, "Hotkeys", "TempCommandHotkey", "F6"))
+    if !IsValidKeyName(StripModifiers(tempCmdHotkey)) {
+        errors.Push("TempCommandHotkey '" tempCmdHotkey "' is not a recognized key. Falling back to F6.")
+        captureHotkey := "F6"
+    }
+
+    settingsHotkey := Trim(IniRead(configFile, "Hotkeys", "SettingsHotkey", "F7"))
+    if !IsValidKeyName(StripModifiers(settingsHotkey)) {
+        errors.Push("SettingsHotkey '" settingsHotkey "' is not a recognized key. Falling back to F7.")
+        captureHotkey := "F7"
+    }
+
     overlayKey := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
     if !IsValidKeyName(overlayKey) {
         errors.Push("OverlayToggleKey '" overlayKey "' is not a recognized key. Falling back to 'z'.")
