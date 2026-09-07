@@ -13,6 +13,7 @@ configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
 registeredHotkeys := Map()
+autoModeEnabled := false
 captureHotkey := "F10"
 tempCmdHotkey := "F6"
 settingsHotkey := "F7"
@@ -78,7 +79,8 @@ RegisterHotkey("settings", settingsHotkey, (*) => ShowSettingsForm())
 
 TrayTip(captureHotkey " = Capture playerlist`n"
     . tempCmdHotkey " = Edit command (temporary)`n"
-    . settingsHotkey " = Open settings",
+    . settingsHotkey " = Open settings`n"
+    . (autoModeEnabled ? "AutoMode is enabled" : "AutoMode is disabled"),
     "Playerlist Capture", 1)
 
 CapturePlayerlist() {
@@ -190,7 +192,11 @@ ShowSettingsForm() {
 
     settingsGui.SetFont("s10 cBlack", "Segoe UI")
 
-    settingsGui.Add("Text", "w120 y+15", "Capture Hotkey:")
+    settingsGui.Add("Text", "w120 y+15", "Auto Mode:")
+    autoModeToggle := settingsGui.Add("DropDownList", "w150 x+10 yp Choose" ((IniRead(configFile, "Settings",
+        "AutoMode", "false") = "true") ? 1 : 2), ["On", "Off"])
+
+    settingsGui.Add("Text", "w120 x20 y+15", "Capture Hotkey:")
     editCapture := settingsGui.Add("Hotkey", "w150 x+10 yp", IniRead(configFile, "Hotkeys", "CaptureHotkey", ""))
 
     settingsGui.Add("Text", "w120 x20 y+10", "Command Hotkey:")
@@ -213,7 +219,7 @@ ShowSettingsForm() {
     settingsGui.SetFont("s10 cWhite bold")
     btnSave := settingsGui.Add("Button", "w280 h32 x20 y+20 Default", "Save")
     btnSave.OnEvent("Click", (*) => SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings,
-        editOverlay, editCommand, ddlSafezone))
+        editOverlay, editCommand, ddlSafezone, autoModeToggle))
 
     settingsGui.OnEvent("Close", (*) => CloseGui(settingsGui))
     settingsGui.OnEvent("Escape", (*) => CloseGui(settingsGui))
@@ -225,7 +231,8 @@ CloseGui(settingsGui) {
     Suspend(false)
 }
 
-SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOverlay, editCommand, ddlSafezone) {
+SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOverlay, editCommand, ddlSafezone,
+    autoModeToggle) {
     global configFile
 
     newCaptureHotkey := editCapture.Value
@@ -238,6 +245,7 @@ SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOv
     IniWrite(editOverlay.Text, configFile, "Settings", "OverlayToggleKey")
     IniWrite(editCommand.Text, configFile, "Settings", "Command")
     IniWrite(ddlSafezone.Text, configFile, "Settings", "SafezoneSetting")
+    IniWrite(autoModeToggle.Text = "On" ? "true" : "false", configFile, "Settings", "AutoMode")
 
     settingsGui.Destroy()
     Suspend(false)
@@ -521,9 +529,11 @@ CaptureScreenRegionToClipboard(x, y, w, h, saveToFile := false, filePath := "") 
 }
 
 LoadConfig(configFile) {
-    global captureHotkey, overlayKey, discordPasteText, safezoneSetting
+    global autoModeEnabled, captureHotkey, tempCmdHotkey, settingsHotkey, overlayKey, discordPasteText, safezoneSetting
 
     errors := []
+
+    autoModeEnabled := (Trim(IniRead(configFile, "Settings", "AutoMode", "false")) = "true")
 
     captureHotkey := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
     if !IsValidKeyName(StripModifiers(captureHotkey)) {
