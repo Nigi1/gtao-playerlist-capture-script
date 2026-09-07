@@ -110,7 +110,7 @@ ScreenshotLoop() {
         } else {
             Sleep(1000)
             CapturePlayerlist()
-            SetTimer(CapturePlayerlist, getIntervalInMilliseconds())
+            SetTimer(CapturePlayerlist, GetIntervalInMilliseconds())
         }
     } else {
         result := MsgBox(
@@ -121,12 +121,12 @@ ScreenshotLoop() {
             screenshotLoopActive := true
             Sleep(1000)
             CapturePlayerlist()
-            SetTimer(CapturePlayerlist, getIntervalInMilliseconds())
+            SetTimer(CapturePlayerlist, GetIntervalInMilliseconds())
         }
     }
 }
 
-getIntervalInMilliseconds() {
+GetIntervalInMilliseconds() {
     global screenshotInterval
 
     return screenshotInterval * 60 * 1000
