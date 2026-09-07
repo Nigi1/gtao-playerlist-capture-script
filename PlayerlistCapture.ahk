@@ -68,12 +68,13 @@ rowHeights := []
 windowSize := {}
 playerCount := 0
 widthOffset := 0
+screenshotLoopActive := false
 
 ; ------------------------------------------------------------------------------
 
 LoadConfig(configFile)
 
-RegisterHotkey("capture", captureHotkey, (*) => CapturePlayerlist())
+RegisterHotkey("capture", captureHotkey, (*) => HandleScreenshotHotkey())
 RegisterHotkey("tempCmd", tempCmdHotkey, (*) => UpdatePasteTextTemp())
 RegisterHotkey("settings", settingsHotkey, (*) => ShowSettingsForm())
 
@@ -83,9 +84,50 @@ TrayTip(captureHotkey " = Capture playerlist`n"
     . (autoModeEnabled ? "AutoMode is enabled" : "AutoMode is disabled"),
     "Playerlist Capture", 1)
 
+HandleScreenshotHotkey() {
+    global autoModeEnabled
+
+    if (autoModeEnabled) {
+        ScreenshotLoop()
+    } else {
+        CapturePlayerlist()
+    }
+}
+
+ScreenshotLoop() {
+    global screenshotLoopActive
+
+    if (screenshotLoopActive) {
+        SetTimer(CapturePlayerlist, 0)
+
+        result := MsgBox(
+            "Automatic screenshots are currently running, taking a screenshot every 10 minutes.`n`nDo you want to stop automatic screenshots now?",
+            "Stop Automatic Screenshots?", "YesNo")
+
+        if (result = "Yes") {
+            screenshotLoopActive := false
+        } else {
+            Sleep(1000)
+            CapturePlayerlist()
+            SetTimer(CapturePlayerlist, 30000)
+        }
+    } else {
+        result := MsgBox(
+            "AutoMode is enabled. Starting automatic captures will take a screenshot of the player list every 10 minutes until you press the hotkey again to stop.`n`nDo you want to start automatic captures now?",
+            "Start Automatic Captures?", "YesNo")
+
+        if (result = "Yes") {
+            screenshotLoopActive := true
+            Sleep(1000)
+            CapturePlayerlist()
+            SetTimer(CapturePlayerlist, 30000)
+        }
+    }
+}
+
 CapturePlayerlist() {
     global GAME_WIN_TITLE, overlayKey, discordPasteText
-    global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize
+    global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize, autoModeEnabled
 
     playerCount := 0
 
@@ -136,6 +178,13 @@ CapturePlayerlist() {
             PasteToDiscord(gameHwnd)
         }
     }
+
+    if (autoModeEnabled) {
+        Send("{Enter}")
+        Sleep(500)
+        WinActivate("ahk_id" gameHwnd)
+    }
+
 }
 
 UpdatePasteTextTemp() {
