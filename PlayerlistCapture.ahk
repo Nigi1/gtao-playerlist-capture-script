@@ -14,6 +14,7 @@ configFile := A_ScriptDir "\config.ini"
 ; --- CONFIG -------------------------------------------------------------------
 registeredHotkeys := Map()
 autoModeEnabled := false
+screenshotInterval := 10
 captureHotkey := "F10"
 tempCmdHotkey := "F6"
 settingsHotkey := "F7"
@@ -109,7 +110,7 @@ ScreenshotLoop() {
         } else {
             Sleep(1000)
             CapturePlayerlist()
-            SetTimer(CapturePlayerlist, 30000)
+            SetTimer(CapturePlayerlist, getIntervalInMilliseconds())
         }
     } else {
         result := MsgBox(
@@ -120,9 +121,15 @@ ScreenshotLoop() {
             screenshotLoopActive := true
             Sleep(1000)
             CapturePlayerlist()
-            SetTimer(CapturePlayerlist, 30000)
+            SetTimer(CapturePlayerlist, getIntervalInMilliseconds())
         }
     }
+}
+
+getIntervalInMilliseconds() {
+    global screenshotInterval
+
+    return screenshotInterval * 60 * 1000
 }
 
 CapturePlayerlist() {
@@ -245,6 +252,10 @@ ShowSettingsForm() {
     autoModeToggle := settingsGui.Add("DropDownList", "w150 x+10 yp Choose" ((IniRead(configFile, "Settings",
         "AutoMode", "false") = "true") ? 1 : 2), ["On", "Off"])
 
+    settingsGui.Add("Text", "w120 x20 y+10", "Interval (minutes):")
+    editInterval := settingsGui.Add("Edit", "w150 x+10 yp", IniRead(configFile, "Settings", "ScreenshotInterval",
+        "10"))
+
     settingsGui.Add("Text", "w120 x20 y+15", "Capture Hotkey:")
     editCapture := settingsGui.Add("Hotkey", "w150 x+10 yp", IniRead(configFile, "Hotkeys", "CaptureHotkey", ""))
 
@@ -268,7 +279,7 @@ ShowSettingsForm() {
     settingsGui.SetFont("s10 cWhite bold")
     btnSave := settingsGui.Add("Button", "w280 h32 x20 y+20 Default", "Save")
     btnSave.OnEvent("Click", (*) => SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings,
-        editOverlay, editCommand, ddlSafezone, autoModeToggle))
+        editOverlay, editCommand, ddlSafezone, autoModeToggle, editInterval))
 
     settingsGui.OnEvent("Close", (*) => CloseGui(settingsGui))
     settingsGui.OnEvent("Escape", (*) => CloseGui(settingsGui))
@@ -281,7 +292,7 @@ CloseGui(settingsGui) {
 }
 
 SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOverlay, editCommand, ddlSafezone,
-    autoModeToggle) {
+    autoModeToggle, editInterval) {
     global configFile
 
     newCaptureHotkey := editCapture.Value
@@ -295,6 +306,7 @@ SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOv
     IniWrite(editCommand.Text, configFile, "Settings", "Command")
     IniWrite(ddlSafezone.Text, configFile, "Settings", "SafezoneSetting")
     IniWrite(autoModeToggle.Text = "On" ? "true" : "false", configFile, "Settings", "AutoMode")
+    IniWrite(editInterval.Text, configFile, "Settings", "ScreenshotInterval")
 
     settingsGui.Destroy()
     Suspend(false)
@@ -578,11 +590,19 @@ CaptureScreenRegionToClipboard(x, y, w, h, saveToFile := false, filePath := "") 
 }
 
 LoadConfig(configFile) {
-    global autoModeEnabled, captureHotkey, tempCmdHotkey, settingsHotkey, overlayKey, discordPasteText, safezoneSetting
+    global autoModeEnabled, screenshotInterval, captureHotkey, tempCmdHotkey, settingsHotkey, overlayKey,
+        discordPasteText, safezoneSetting
 
     errors := []
 
     autoModeEnabled := (Trim(IniRead(configFile, "Settings", "AutoMode", "false")) = "true")
+
+    screenshotInterval := Trim(IniRead(configFile, "Settings", "ScreenshotInterval", "10"))
+    if (!IsNumber(screenshotInterval) || screenshotInterval <= 0 || screenshotInterval > 60) {
+        errors.Push("The interval '" screenshotInterval "' is not a valid interval. Falling back to a default interval of 10 minutes."
+        )
+        screenshotInterval := 10
+    }
 
     captureHotkey := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
     if !IsValidKeyName(StripModifiers(captureHotkey)) {
