@@ -305,6 +305,55 @@ SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOv
     newTempCmdHotkey := editTempCommand.Value
     newSettingsHotkey := editSettings.Value
 
+    result := ValidateHotkey(newCaptureHotkey, "Capture Hotkey", "F10")
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editCapture.Focus()
+        return
+    }
+
+    result := ValidateHotkey(newTempCmdHotkey, "Command Hotkey", "F6")
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editTempCommand.Focus()
+        return
+    }
+
+    result := ValidateHotkey(newSettingsHotkey, "Settings Hotkey", "F7")
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editSettings.Focus()
+        return
+    }
+
+    result := ValidateUniqueHotkeys([{ name: "Capture Hotkey", value: newCaptureHotkey }, { name: "Command Hotkey",
+        value: newTempCmdHotkey }, { name: "Settings Hotkey", value: newSettingsHotkey }
+    ])
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        return
+    }
+
+    result := ValidateOverlayKey(editOverlay.Text)
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editOverlay.Focus()
+        return
+    }
+
+    result := ValidateInterval(editInterval.Text)
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editInterval.Focus()
+        return
+    }
+
+    result := ValidateSafezone(ddlSafezone.Text)
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        return
+    }
+
     IniWrite(newCaptureHotkey, configFile, "Hotkeys", "CaptureHotkey")
     IniWrite(newTempCmdHotkey, configFile, "Hotkeys", "TempCommandHotkey")
     IniWrite(newSettingsHotkey, configFile, "Hotkeys", "SettingsHotkey")
@@ -617,49 +666,54 @@ LoadConfig(configFile) {
 
     autoModeEnabled := (Trim(IniRead(configFile, "Settings", "AutoMode", "false")) = "true")
 
-    screenshotInterval := Trim(IniRead(configFile, "Settings", "ScreenshotInterval", "10"))
-    if (!IsNumber(screenshotInterval) || screenshotInterval <= 0 || screenshotInterval > 60) {
-        errors.Push("The interval '" screenshotInterval "' is not a valid interval. Falling back to a default interval of 10 minutes."
-        )
-        screenshotInterval := 10
+    result := ValidateInterval(IniRead(configFile, "Settings", "ScreenshotInterval", "10"))
+    screenshotInterval := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to 10.")
+        IniWrite(screenshotInterval, configFile, "Settings", "ScreenshotInterval")
     }
 
-    captureHotkey := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
-    if !IsValidKeyName(StripModifiers(captureHotkey)) {
-        errors.Push("CaptureHotkey '" captureHotkey "' is not a recognized key. Falling back to F10.")
-        captureHotkey := "F10"
+    result := ValidateHotkey(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"), "CaptureHotkey", "F10")
+    captureHotkey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to F10.")
+        IniWrite(captureHotkey, configFile, "Hotkeys", "CaptureHotkey")
     }
 
-    tempCmdHotkey := Trim(IniRead(configFile, "Hotkeys", "TempCommandHotkey", "F6"))
-    if !IsValidKeyName(StripModifiers(tempCmdHotkey)) {
-        errors.Push("TempCommandHotkey '" tempCmdHotkey "' is not a recognized key. Falling back to F6.")
-        captureHotkey := "F6"
+    result := ValidateHotkey(IniRead(configFile, "Hotkeys", "TempCommandHotkey", "F6"), "TempCommandHotkey", "F6")
+    tempCmdHotkey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to F6.")
+        IniWrite(tempCmdHotkey, configFile, "Hotkeys", "TempCommandHotkey")
     }
 
-    settingsHotkey := Trim(IniRead(configFile, "Hotkeys", "SettingsHotkey", "F7"))
-    if !IsValidKeyName(StripModifiers(settingsHotkey)) {
-        errors.Push("SettingsHotkey '" settingsHotkey "' is not a recognized key. Falling back to F7.")
-        captureHotkey := "F7"
+    result := ValidateHotkey(IniRead(configFile, "Hotkeys", "SettingsHotkey", "F7"), "SettingsHotkey", "F7")
+    settingsHotkey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to F7.")
+        IniWrite(settingsHotkey, configFile, "Hotkeys", "SettingsHotkey")
     }
 
-    overlayKey := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
-    if !IsValidKeyName(overlayKey) {
-        errors.Push("OverlayToggleKey '" overlayKey "' is not a recognized key. Falling back to 'z'.")
-        overlayKey := "z"
+    result := ValidateUniqueHotkeys([{ name: "CaptureHotkey", value: captureHotkey }, { name: "TempCommandHotkey",
+        value: tempCmdHotkey }, { name: "SettingsHotkey", value: settingsHotkey }
+    ])
+    if !result.valid
+        errors.Push(result.error)
+
+    result := ValidateOverlayKey(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
+    overlayKey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to 'z'.")
+        IniWrite(overlayKey, configFile, "Settings", "OverlayToggleKey")
     }
 
     discordPasteText := Trim(IniRead(configFile, "Settings", "Command", ""))
 
-    rawSafezone := Trim(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
-    safezoneSetting := 7
-    try {
-        val := Integer(rawSafezone)
-        if (val >= 0 && val <= 10)
-            safezoneSetting := val
-        else
-            errors.Push("SafezoneSetting must be between 0-10. Falling back to 7.")
-    } catch {
-        errors.Push("SafezoneSetting must be a number. Falling back to 7.")
+    result := ValidateSafezone(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
+    safezoneSetting := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to 7.")
+        IniWrite(safezoneSetting, configFile, "Settings", "SafezoneSetting")
     }
 
     if (errors.Length > 0) {
@@ -668,6 +722,62 @@ LoadConfig(configFile) {
             msg .= "- " err "`n"
         MsgBox(msg, "Config Warning", "Icon!")
     }
+}
+
+ValidateInterval(value) {
+    value := Trim(value)
+    if (!IsNumber(value) || value <= 0 || value > 60)
+        return { valid: false, value: 10, error: "The interval '" value "' is not a valid interval (must be 0-60 minutes)." }
+    return { valid: true, value: value }
+}
+
+ValidateHotkey(value, fieldName, fallback) {
+    value := Trim(value)
+    if !IsValidKeyName(StripModifiers(value))
+        return { valid: false, value: fallback, error: fieldName " '" value "' is not a recognized key." }
+    return { valid: true, value: value }
+}
+
+ValidateOverlayKey(value) {
+    value := Trim(value)
+    if !IsValidKeyName(value)
+        return { valid: false, value: "z", error: "OverlayToggleKey '" value "' is not a recognized key." }
+    return { valid: true, value: value }
+}
+
+ValidateSafezone(value) {
+    value := Trim(value)
+    try {
+        val := Integer(value)
+        if (val >= 0 && val <= 10)
+            return { valid: true, value: val }
+    }
+    return { valid: false, value: 7, error: "SafezoneSetting must be a number between 0-10." }
+}
+
+ValidateUniqueHotkeys(hotkeys) {
+    seen := Map()
+    duplicates := []
+
+    for hk in hotkeys {
+        key := StrLower(hk.value)
+        if seen.Has(key) {
+            duplicates.Push(seen[key] " and " hk.name " are both set to '" hk.value "'")
+        } else {
+            seen[key] := hk.name
+        }
+    }
+
+    if (duplicates.Length > 0)
+        return { valid: false, error: "Hotkeys must be unique: " . JoinArray(duplicates, "; ") }
+    return { valid: true }
+}
+
+JoinArray(arr, delim) {
+    result := ""
+    for i, val in arr
+        result .= (i > 1 ? delim : "") val
+    return result
 }
 
 IsValidKeyName(keyName) {
