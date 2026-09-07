@@ -96,13 +96,13 @@ HandleScreenshotHotkey() {
 }
 
 ScreenshotLoop() {
-    global screenshotLoopActive
+    global screenshotLoopActive, screenshotInterval
 
     if (screenshotLoopActive) {
         SetTimer(CapturePlayerlist, 0)
 
         result := MsgBox(
-            "Automatic screenshots are currently running, taking a screenshot every 10 minutes.`n`nDo you want to stop automatic screenshots now?",
+            "Automatic screenshots are currently running, taking a screenshot every " screenshotInterval " minutes.`n`nDo you want to stop automatic screenshots now?",
             "Stop Automatic Screenshots?", "YesNo")
 
         if (result = "Yes") {
@@ -110,24 +110,26 @@ ScreenshotLoop() {
             EnableHotkey("tempCmd")
             EnableHotkey("settings")
         } else {
-            Sleep(1000)
-            CapturePlayerlist()
-            SetTimer(CapturePlayerlist, GetIntervalInMilliseconds())
+            StartCaptureLoop()
         }
     } else {
         result := MsgBox(
-            "AutoMode is enabled. Starting automatic captures will take a screenshot of the player list every 10 minutes until you press the hotkey again to stop.`n`nDo you want to start automatic captures now?",
+            "AutoMode is enabled. Starting automatic captures will take a screenshot of the player list every " screenshotInterval " minutes until you press the hotkey again to stop.`n`nDo you want to start automatic captures now?",
             "Start Automatic Captures?", "YesNo")
 
         if (result = "Yes") {
             DisableHotkey("tempCmd")
             DisableHotkey("settings")
             screenshotLoopActive := true
-            Sleep(1000)
-            CapturePlayerlist()
-            SetTimer(CapturePlayerlist, GetIntervalInMilliseconds())
+            StartCaptureLoop()
         }
     }
+}
+
+StartCaptureLoop() {
+    Sleep(1000)
+    CapturePlayerlist()
+    SetTimer(CapturePlayerlist, GetIntervalInMilliseconds())
 }
 
 GetIntervalInMilliseconds() {
