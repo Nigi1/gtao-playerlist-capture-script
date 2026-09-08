@@ -114,7 +114,7 @@ ScreenshotLoop() {
         }
     } else {
         result := MsgBox(
-            "AutoMode is enabled. Starting automatic captures will take a screenshot of the player list every " screenshotInterval " minutes until you press the hotkey again to stop.`n`nDo you want to start automatic captures now?",
+            "AutoMode is enabled.`n`nStarting automatic captures will take a screenshot of the player list every " screenshotInterval " minutes until you press the hotkey again to stop.`n`nDo you want to start automatic captures now?",
             "Start Automatic Captures?", "YesNo")
 
         if (result = "Yes") {
