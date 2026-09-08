@@ -13,6 +13,8 @@ configFile := A_ScriptDir "\config.ini"
 
 ; --- CONFIG -------------------------------------------------------------------
 registeredHotkeys := Map()
+autoModeEnabled := false
+screenshotInterval := 10
 captureHotkey := "F10"
 tempCmdHotkey := "F6"
 settingsHotkey := "F7"
@@ -67,23 +69,78 @@ rowHeights := []
 windowSize := {}
 playerCount := 0
 widthOffset := 0
+screenshotLoopActive := false
 
 ; ------------------------------------------------------------------------------
 
 LoadConfig(configFile)
 
-RegisterHotkey("capture", captureHotkey, (*) => CapturePlayerlist())
+RegisterHotkey("capture", captureHotkey, (*) => HandleScreenshotHotkey())
 RegisterHotkey("tempCmd", tempCmdHotkey, (*) => UpdatePasteTextTemp())
 RegisterHotkey("settings", settingsHotkey, (*) => ShowSettingsForm())
 
 TrayTip(captureHotkey " = Capture playerlist`n"
     . tempCmdHotkey " = Edit command (temporary)`n"
-    . settingsHotkey " = Open settings",
+    . settingsHotkey " = Open settings`n"
+    . (autoModeEnabled ? "AutoMode is enabled" : "AutoMode is disabled"),
     "Playerlist Capture", 1)
+
+HandleScreenshotHotkey() {
+    global autoModeEnabled
+
+    if (autoModeEnabled) {
+        ScreenshotLoop()
+    } else {
+        CapturePlayerlist()
+    }
+}
+
+ScreenshotLoop() {
+    global screenshotLoopActive, screenshotInterval
+
+    if (screenshotLoopActive) {
+        SetTimer(CapturePlayerlist, 0)
+
+        result := MsgBox(
+            "Automatic screenshots are currently running, taking a screenshot every " screenshotInterval " minutes.`n`nDo you want to stop automatic screenshots now?",
+            "Stop Automatic Screenshots?", "YesNo")
+
+        if (result = "Yes") {
+            screenshotLoopActive := false
+            EnableHotkey("tempCmd")
+            EnableHotkey("settings")
+        } else {
+            StartCaptureLoop()
+        }
+    } else {
+        result := MsgBox(
+            "AutoMode is enabled.`n`nStarting automatic captures will take a screenshot of the player list every " screenshotInterval " minutes until you press the hotkey again to stop.`n`nDo you want to start automatic captures now?",
+            "Start Automatic Captures?", "YesNo")
+
+        if (result = "Yes") {
+            DisableHotkey("tempCmd")
+            DisableHotkey("settings")
+            screenshotLoopActive := true
+            StartCaptureLoop()
+        }
+    }
+}
+
+StartCaptureLoop() {
+    Sleep(1000)
+    CapturePlayerlist()
+    SetTimer(CapturePlayerlist, GetIntervalInMilliseconds())
+}
+
+GetIntervalInMilliseconds() {
+    global screenshotInterval
+
+    return screenshotInterval * 60 * 1000
+}
 
 CapturePlayerlist() {
     global GAME_WIN_TITLE, overlayKey, discordPasteText
-    global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize
+    global basePlayerlistCoords, pixelCheckCoords, playerCount, rowHeights, windowSize, autoModeEnabled
 
     playerCount := 0
 
@@ -134,6 +191,13 @@ CapturePlayerlist() {
             PasteToDiscord(gameHwnd)
         }
     }
+
+    if (autoModeEnabled) {
+        Send("{Enter}")
+        Sleep(500)
+        WinActivate("ahk_id" gameHwnd)
+    }
+
 }
 
 UpdatePasteTextTemp() {
@@ -190,7 +254,15 @@ ShowSettingsForm() {
 
     settingsGui.SetFont("s10 cBlack", "Segoe UI")
 
-    settingsGui.Add("Text", "w120 y+15", "Capture Hotkey:")
+    settingsGui.Add("Text", "w120 y+15", "Auto Mode:")
+    autoModeToggle := settingsGui.Add("DropDownList", "w150 x+10 yp Choose" ((IniRead(configFile, "Settings",
+        "AutoMode", "false") = "true") ? 1 : 2), ["On", "Off"])
+
+    settingsGui.Add("Text", "w120 x20 y+10", "Interval (minutes):")
+    editInterval := settingsGui.Add("Edit", "w150 x+10 yp", IniRead(configFile, "Settings", "ScreenshotInterval",
+        "10"))
+
+    settingsGui.Add("Text", "w120 x20 y+15", "Capture Hotkey:")
     editCapture := settingsGui.Add("Hotkey", "w150 x+10 yp", IniRead(configFile, "Hotkeys", "CaptureHotkey", ""))
 
     settingsGui.Add("Text", "w120 x20 y+10", "Command Hotkey:")
@@ -213,7 +285,7 @@ ShowSettingsForm() {
     settingsGui.SetFont("s10 cWhite bold")
     btnSave := settingsGui.Add("Button", "w280 h32 x20 y+20 Default", "Save")
     btnSave.OnEvent("Click", (*) => SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings,
-        editOverlay, editCommand, ddlSafezone))
+        editOverlay, editCommand, ddlSafezone, autoModeToggle, editInterval))
 
     settingsGui.OnEvent("Close", (*) => CloseGui(settingsGui))
     settingsGui.OnEvent("Escape", (*) => CloseGui(settingsGui))
@@ -225,12 +297,62 @@ CloseGui(settingsGui) {
     Suspend(false)
 }
 
-SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOverlay, editCommand, ddlSafezone) {
+SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOverlay, editCommand, ddlSafezone,
+    autoModeToggle, editInterval) {
     global configFile
 
     newCaptureHotkey := editCapture.Value
     newTempCmdHotkey := editTempCommand.Value
     newSettingsHotkey := editSettings.Value
+
+    result := ValidateHotkey(newCaptureHotkey, "Capture Hotkey", "F10")
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editCapture.Focus()
+        return
+    }
+
+    result := ValidateHotkey(newTempCmdHotkey, "Command Hotkey", "F6")
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editTempCommand.Focus()
+        return
+    }
+
+    result := ValidateHotkey(newSettingsHotkey, "Settings Hotkey", "F7")
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editSettings.Focus()
+        return
+    }
+
+    result := ValidateUniqueHotkeys([{ name: "Capture Hotkey", value: newCaptureHotkey }, { name: "Command Hotkey",
+        value: newTempCmdHotkey }, { name: "Settings Hotkey", value: newSettingsHotkey }
+    ])
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        return
+    }
+
+    result := ValidateOverlayKey(editOverlay.Text)
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editOverlay.Focus()
+        return
+    }
+
+    result := ValidateInterval(editInterval.Text)
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        editInterval.Focus()
+        return
+    }
+
+    result := ValidateSafezone(ddlSafezone.Text)
+    if !result.valid {
+        MsgBox(result.error, "Invalid Input", "Iconx Owner" settingsGui.Hwnd)
+        return
+    }
 
     IniWrite(newCaptureHotkey, configFile, "Hotkeys", "CaptureHotkey")
     IniWrite(newTempCmdHotkey, configFile, "Hotkeys", "TempCommandHotkey")
@@ -238,6 +360,8 @@ SaveSettingsForm(settingsGui, editCapture, editTempCommand, editSettings, editOv
     IniWrite(editOverlay.Text, configFile, "Settings", "OverlayToggleKey")
     IniWrite(editCommand.Text, configFile, "Settings", "Command")
     IniWrite(ddlSafezone.Text, configFile, "Settings", "SafezoneSetting")
+    IniWrite(autoModeToggle.Text = "On" ? "true" : "false", configFile, "Settings", "AutoMode")
+    IniWrite(editInterval.Text, configFile, "Settings", "ScreenshotInterval")
 
     settingsGui.Destroy()
     Suspend(false)
@@ -256,6 +380,20 @@ RegisterHotkey(name, keyString, callback) {
         Hotkey(keyString, callback, "On")
 
     registeredHotkeys[name] := { key: keyString, callback: callback }
+}
+
+DisableHotkey(name) {
+    global registeredHotkeys
+
+    if registeredHotkeys.Has(name)
+        Hotkey(registeredHotkeys[name].key, registeredHotkeys[name].callback, "Off")
+}
+
+EnableHotkey(name) {
+    global registeredHotkeys
+
+    if registeredHotkeys.Has(name)
+        Hotkey(registeredHotkeys[name].key, registeredHotkeys[name].callback, "On")
 }
 
 UpdateHotkey(name, newKeyString) {
@@ -521,34 +659,61 @@ CaptureScreenRegionToClipboard(x, y, w, h, saveToFile := false, filePath := "") 
 }
 
 LoadConfig(configFile) {
-    global captureHotkey, overlayKey, discordPasteText, safezoneSetting
+    global autoModeEnabled, screenshotInterval, captureHotkey, tempCmdHotkey, settingsHotkey, overlayKey,
+        discordPasteText, safezoneSetting
 
     errors := []
 
-    captureHotkey := Trim(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"))
-    if !IsValidKeyName(StripModifiers(captureHotkey)) {
-        errors.Push("CaptureHotkey '" captureHotkey "' is not a recognized key. Falling back to F10.")
-        captureHotkey := "F10"
+    autoModeEnabled := (Trim(IniRead(configFile, "Settings", "AutoMode", "false")) = "true")
+
+    result := ValidateInterval(IniRead(configFile, "Settings", "ScreenshotInterval", "10"))
+    screenshotInterval := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to 10.")
+        IniWrite(screenshotInterval, configFile, "Settings", "ScreenshotInterval")
     }
 
-    overlayKey := Trim(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
-    if !IsValidKeyName(overlayKey) {
-        errors.Push("OverlayToggleKey '" overlayKey "' is not a recognized key. Falling back to 'z'.")
-        overlayKey := "z"
+    result := ValidateHotkey(IniRead(configFile, "Hotkeys", "CaptureHotkey", "F10"), "CaptureHotkey", "F10")
+    captureHotkey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to F10.")
+        IniWrite(captureHotkey, configFile, "Hotkeys", "CaptureHotkey")
+    }
+
+    result := ValidateHotkey(IniRead(configFile, "Hotkeys", "TempCommandHotkey", "F6"), "TempCommandHotkey", "F6")
+    tempCmdHotkey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to F6.")
+        IniWrite(tempCmdHotkey, configFile, "Hotkeys", "TempCommandHotkey")
+    }
+
+    result := ValidateHotkey(IniRead(configFile, "Hotkeys", "SettingsHotkey", "F7"), "SettingsHotkey", "F7")
+    settingsHotkey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to F7.")
+        IniWrite(settingsHotkey, configFile, "Hotkeys", "SettingsHotkey")
+    }
+
+    result := ValidateUniqueHotkeys([{ name: "CaptureHotkey", value: captureHotkey }, { name: "TempCommandHotkey",
+        value: tempCmdHotkey }, { name: "SettingsHotkey", value: settingsHotkey }
+    ])
+    if !result.valid
+        errors.Push(result.error)
+
+    result := ValidateOverlayKey(IniRead(configFile, "Settings", "OverlayToggleKey", "z"))
+    overlayKey := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to 'z'.")
+        IniWrite(overlayKey, configFile, "Settings", "OverlayToggleKey")
     }
 
     discordPasteText := Trim(IniRead(configFile, "Settings", "Command", ""))
 
-    rawSafezone := Trim(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
-    safezoneSetting := 7
-    try {
-        val := Integer(rawSafezone)
-        if (val >= 0 && val <= 10)
-            safezoneSetting := val
-        else
-            errors.Push("SafezoneSetting must be between 0-10. Falling back to 7.")
-    } catch {
-        errors.Push("SafezoneSetting must be a number. Falling back to 7.")
+    result := ValidateSafezone(IniRead(configFile, "Settings", "SafezoneSetting", "7"))
+    safezoneSetting := result.value
+    if !result.valid {
+        errors.Push(result.error " Falling back to 7.")
+        IniWrite(safezoneSetting, configFile, "Settings", "SafezoneSetting")
     }
 
     if (errors.Length > 0) {
@@ -557,6 +722,62 @@ LoadConfig(configFile) {
             msg .= "- " err "`n"
         MsgBox(msg, "Config Warning", "Icon!")
     }
+}
+
+ValidateInterval(value) {
+    value := Trim(value)
+    if (!IsNumber(value) || value <= 0 || value > 60)
+        return { valid: false, value: 10, error: "The interval '" value "' is not a valid interval (must be 0-60 minutes)." }
+    return { valid: true, value: value }
+}
+
+ValidateHotkey(value, fieldName, fallback) {
+    value := Trim(value)
+    if !IsValidKeyName(StripModifiers(value))
+        return { valid: false, value: fallback, error: fieldName " '" value "' is not a recognized key." }
+    return { valid: true, value: value }
+}
+
+ValidateOverlayKey(value) {
+    value := Trim(value)
+    if !IsValidKeyName(value)
+        return { valid: false, value: "z", error: "OverlayToggleKey '" value "' is not a recognized key." }
+    return { valid: true, value: value }
+}
+
+ValidateSafezone(value) {
+    value := Trim(value)
+    try {
+        val := Integer(value)
+        if (val >= 0 && val <= 10)
+            return { valid: true, value: val }
+    }
+    return { valid: false, value: 7, error: "SafezoneSetting must be a number between 0-10." }
+}
+
+ValidateUniqueHotkeys(hotkeys) {
+    seen := Map()
+    duplicates := []
+
+    for hk in hotkeys {
+        key := StrLower(hk.value)
+        if seen.Has(key) {
+            duplicates.Push(seen[key] " and " hk.name " are both set to '" hk.value "'")
+        } else {
+            seen[key] := hk.name
+        }
+    }
+
+    if (duplicates.Length > 0)
+        return { valid: false, error: "Hotkeys must be unique: " . JoinArray(duplicates, "; ") }
+    return { valid: true }
+}
+
+JoinArray(arr, delim) {
+    result := ""
+    for i, val in arr
+        result .= (i > 1 ? delim : "") val
+    return result
 }
 
 IsValidKeyName(keyName) {
