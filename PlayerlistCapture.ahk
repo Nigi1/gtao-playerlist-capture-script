@@ -27,6 +27,7 @@ DISCORD_WIN_TITLE := "Discord.exe"
 ROW_HEIGHTS_PX := Map(
     2160, [76, 75, 76, 75, 75, 76, 75, 75, 76, 75, 75, 76, 75, 75, 76, 75],
     1440, [50, 50, 51, 50, 50, 51, 50, 50, 50, 50, 51, 50, 50, 50, 51, 50],
+    1200, [42, 42, 41, 42, 42, 42, 42, 42, 42, 41, 42, 42, 42, 42, 42, 42],
     1080, [37, 38, 38, 37, 38, 38, 37, 38, 38, 37, 38, 38, 38, 37, 38, 37],
     720, [25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25]
 )
@@ -52,6 +53,22 @@ BASE_REF := {
     y: 33,
     w: 852,
     h: 75
+}
+
+BASE_REF16_10_FULLHD := {
+    width: 1920,
+    height: 1200,
+    x: 32,
+    y: 18,
+    w: 426,
+    h: 42
+}
+
+COLORCHECK_REF16_10_FULLHD := {
+    x: 432,
+    y: 62,
+    w: 14,
+    h: 3
 }
 
 COLORCHECK_REF := {
@@ -150,12 +167,19 @@ CapturePlayerlist() {
     }
 
     windowSize := GetWindowSize(gameHwnd)
-    ApplySafezoneOffset(safezoneSetting)
-    basePlayerlistCoords := GetScreenRelativeCoords(BASE_REF)
-    if widthOffset > 0
-        basePlayerlistCoords.x += widthOffset
-    pixelCheckCoords := GetScreenRelativeCoords(COLORCHECK_REF)
-    rowHeights := GetRowHeights()
+
+    if (windowSize.winH = 1200) {
+        basePlayerlistCoords := BASE_REF16_10_FULLHD
+        pixelCheckCoords := COLORCHECK_REF16_10_FULLHD
+        rowHeights := ROW_HEIGHTS_PX[1200]
+    } else {
+        ApplySafezoneOffset(safezoneSetting)
+        basePlayerlistCoords := GetScreenRelativeCoords(BASE_REF)
+        if widthOffset > 0
+            basePlayerlistCoords.x += widthOffset
+        pixelCheckCoords := GetScreenRelativeCoords(COLORCHECK_REF)
+        rowHeights := GetRowHeights()
+    }
 
     WinActivate("ahk_id" gameHwnd)
     WinWaitActive("ahk_id " gameHwnd, , 2)
