@@ -108,7 +108,11 @@ HandleScreenshotHotkey() {
     if (autoModeEnabled) {
         ScreenshotLoop()
     } else {
-        CapturePlayerlist()
+        DisableHotkeys("capture", "tempCmd", "settings")
+        try
+            CapturePlayerlist()
+        finally
+            EnableHotkeys("capture", "tempCmd", "settings")
     }
 }
 
@@ -124,8 +128,7 @@ ScreenshotLoop() {
 
         if (result = "Yes") {
             screenshotLoopActive := false
-            EnableHotkey("tempCmd")
-            EnableHotkey("settings")
+            EnableHotkeys("tempCmd", "settings")
         } else {
             StartCaptureLoop()
         }
@@ -135,8 +138,7 @@ ScreenshotLoop() {
             "Start Automatic Captures?", "YesNo")
 
         if (result = "Yes") {
-            DisableHotkey("tempCmd")
-            DisableHotkey("settings")
+            DisableHotkeys("tempCmd", "settings")
             screenshotLoopActive := true
             StartCaptureLoop()
         }
@@ -406,18 +408,22 @@ RegisterHotkey(name, keyString, callback) {
     registeredHotkeys[name] := { key: keyString, callback: callback }
 }
 
-DisableHotkey(name) {
+EnableHotkeys(names*) {
     global registeredHotkeys
 
-    if registeredHotkeys.Has(name)
-        Hotkey(registeredHotkeys[name].key, registeredHotkeys[name].callback, "Off")
+    for name in names {
+        if registeredHotkeys.Has(name)
+            Hotkey(registeredHotkeys[name].key, registeredHotkeys[name].callback, "On")
+    }
 }
 
-EnableHotkey(name) {
+DisableHotkeys(names*) {
     global registeredHotkeys
 
-    if registeredHotkeys.Has(name)
-        Hotkey(registeredHotkeys[name].key, registeredHotkeys[name].callback, "On")
+    for name in names {
+        if registeredHotkeys.Has(name)
+            Hotkey(registeredHotkeys[name].key, registeredHotkeys[name].callback, "Off")
+    }
 }
 
 UpdateHotkey(name, newKeyString) {
